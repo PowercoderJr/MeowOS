@@ -31,41 +31,43 @@ namespace HlwnOS.FileSystem
         }
         private int freeClustersCount;
 
-        public FAT(FileManager fm, int tableSize)
+        public FAT(Controller ctrl, int tableSize)
         {
-            this.fm = fm;
+            this.ctrl = ctrl;
 
             this.tableSize = tableSize;
             table = new ushort[this.tableSize];
-            uint systemArea = fm.SuperBlock.RootOffset / fm.SuperBlock.ClusterSize;
+            uint systemArea = ctrl.SuperBlock.RootOffset / ctrl.SuperBlock.ClusterSize;
             for (uint i = 0; i < systemArea; ++i)
                 table[i] = CL_SYSTEM;
-            uint rootdirArea = (fm.SuperBlock.DataOffset - fm.SuperBlock.RootOffset) / fm.SuperBlock.ClusterSize;
+            uint rootdirArea = (ctrl.SuperBlock.DataOffset - ctrl.SuperBlock.RootOffset) / ctrl.SuperBlock.ClusterSize;
             for (uint i = systemArea; i < systemArea + rootdirArea; ++i)
                 table[i] = CL_ROOTDIR;
         }
         
         public override byte[] toByteArray(bool expandToCluster)
         {
-            byte[] buffer = new byte[expandToCluster ? fm.SuperBlock.Fat2Offset - fm.SuperBlock.Fat1Offset : tableSize * ELEM_SIZE];
+            byte[] buffer = new byte[expandToCluster ? ctrl.SuperBlock.Fat2Offset - ctrl.SuperBlock.Fat1Offset : tableSize * ELEM_SIZE];
             Buffer.BlockCopy(table, 0, buffer, 0, tableSize * ELEM_SIZE);
             return buffer;
-
-            /*
-            //ArrayList buffer = new ArrayList();
-            //Запись информации
-            foreach (ushort elem in table)
-                bw.Write(elem);
-
-            //Заполнение оставшегося места
-            int endingSize = fm.SuperBlock.ClusterSize - table.Length * ELEM_SIZE % fm.SuperBlock.ClusterSize;
-            for (int i = 0; i < endingSize; ++i)
-                bw.Write((byte)0);*/                
         }
 
         public override void fromByteArray(byte[] buffer)
         {
-            throw new NotImplementedException();
+            Buffer.BlockCopy(buffer, 0, table, 0, tableSize * ELEM_SIZE);
+        }
+
+        public override string ToString()
+        {
+            string result = "";
+            const int IN_STRING = 8;
+            for (int i = 0; i < tableSize / IN_STRING; ++i)
+            {
+                for (int j = 0; j < IN_STRING; ++j)
+                    result += String.Format("{0, -6}", table[i * IN_STRING + j]);
+                result += '\n';
+            }
+            return result;
         }
 
         public ushort getFreeClusterIndex()

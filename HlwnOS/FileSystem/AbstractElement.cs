@@ -10,7 +10,7 @@ namespace HlwnOS.FileSystem
 {
     abstract class AbstractElement : IConvertableToByteArray, IConvertableFromByteArray
     {
-        protected FileManager fm;
+        protected Controller ctrl;
 
         public abstract byte[] toByteArray(bool expandToCluster);
         public abstract void fromByteArray(byte[] buffer);

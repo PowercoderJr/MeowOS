@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS.FileSystem
 {
-    class FileManager
+    class Controller
     {
         private enum Areas { SUPERBLOCK, FAT1, FAT2, ROOTDIR, DATA }
 
@@ -17,7 +17,9 @@ namespace HlwnOS.FileSystem
         public const ushort CLUSTER_SIZE = FACTOR * 4;
 
         private string path;
-        private BinaryWriter bw;
+        private FileStream space = null;
+        private BinaryWriter bw = null;
+        private BinaryReader br = null;
         private SuperBlock superBlock;
         public SuperBlock SuperBlock
         {
@@ -37,15 +39,18 @@ namespace HlwnOS.FileSystem
             set { rootDir = value; }
         }
 
-        public FileManager()
+        public Controller()
         {
             ;
         }
 
         public void createSpace(string path)
         {
+            closeSpace();
             this.path = path;
-            bw = new BinaryWriter(System.IO.File.Create(path));
+            space = System.IO.File.Open(path, FileMode.Create, FileAccess.ReadWrite); //TODO 14.11: предупреждать, если файл уже существует
+            bw = new BinaryWriter(space);
+            br = new BinaryReader(space);
 
             //Системная область
             bw.Write(superBlock.toByteArray(true));
@@ -54,20 +59,15 @@ namespace HlwnOS.FileSystem
 
             //Корневой каталог
             bw.Write(rootDir.ToArray());
-            /*if (superBlock.RootSize % superBlock.ClusterSize == 0)
-                for (int i = 0; i < superBlock.RootSize / superBlock.ClusterSize; ++i)
-                    bw.Write(emptyCluster);
-            else
-                for (int i = 0; i < superBlock.RootSize; ++i)
-                    bw.Write((byte)0);*/
+
             //Область данных
             byte[] emptyCluster = new byte[superBlock.ClusterSize];
-            if ((superBlock.DiskSize - superBlock.DataOffset) % superBlock.ClusterSize == 0)
-                for (int i = 0; i < (superBlock.DiskSize - superBlock.DataOffset) / superBlock.ClusterSize; ++i)
-                    bw.Write(emptyCluster);
-            else
-                for (int i = 0; i < (superBlock.DiskSize - superBlock.DataOffset); ++i)
-                    bw.Write((byte)0);
+            uint wholeClustersAmount = (superBlock.DiskSize - superBlock.DataOffset) / superBlock.ClusterSize;
+            uint remainder = (superBlock.DiskSize - superBlock.DataOffset) - wholeClustersAmount * superBlock.ClusterSize;
+            for (int i = 0; i < wholeClustersAmount; ++i)
+                bw.Write(emptyCluster);
+            for (int i = 0; i < remainder; ++i)
+                bw.Write((byte)0);
 
             //Заголовок файла с учётными записями пользователей
             FileHeader users = new FileHeader("users", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
@@ -80,9 +80,45 @@ namespace HlwnOS.FileSystem
             writeFile("/", users, Encoding.ASCII.GetBytes(kbyte + kbyte + kbyte + kbyte + kbyte + kbyte)); //6KB
         }
 
+        public void openSpace(string path)
+        {
+            closeSpace();
+            this.path = path;
+            space = System.IO.File.Open(path, FileMode.Open, FileAccess.ReadWrite); //TODO 14.11: предупреждать, если файл не найден
+            bw = new BinaryWriter(space);
+            br = new BinaryReader(space);
+            
+            //Системная область
+            this.SuperBlock = new SuperBlock(this, br.ReadBytes(SuperBlock.SIZE));
+            Fat = new FAT(this, (int)superBlock.DiskSize / superBlock.ClusterSize);
+            br.BaseStream.Seek(superBlock.Fat1Offset, SeekOrigin.Begin);
+            Fat.fromByteArray(br.ReadBytes(Fat.TableSize * FAT.ELEM_SIZE));
+
+            //Корневой каталог
+            br.BaseStream.Seek((int)superBlock.RootOffset, SeekOrigin.Begin);
+            rootDir = Encoding.ASCII.GetString(br.ReadBytes(superBlock.RootSize));
+        }
+
         public void closeSpace()
         {
-            bw.Close();
+            if (space != null)
+            {
+                space.Flush();
+                space.Close();
+                space = null;
+            }
+
+            if (bw != null)
+            {
+                bw.Close();
+                bw = null;
+            }
+
+            if (br != null)
+            {
+                br.Close();
+                br = null;
+            }
         }
         
         public int writeFile(string path, FileHeader header, byte[] data)
@@ -92,7 +128,7 @@ namespace HlwnOS.FileSystem
             header.Size = (uint)data.Length;
 
             //Запись заголовка
-            //Тут использовать путь из path
+            //TODO 14.11: тут использовать путь из path
             rootDir = header.toByteArray(false) + rootDir.Remove(0, FileHeader.SIZE);
             writeArea(Areas.ROOTDIR);
 

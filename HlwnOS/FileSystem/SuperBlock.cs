@@ -11,13 +11,15 @@ namespace HlwnOS.FileSystem
 {
     class SuperBlock : AbstractElement
     {
+        public const int SIZE = FS_TYPE_MAX_LENGTH + sizeof(ushort) + sizeof(ushort) + sizeof(uint) + sizeof(ushort) + sizeof(ushort) + sizeof(uint) + sizeof(uint);
+
         //Тип ФС - 6 б
-        public const int FS_TYPE_LENGTH = 6;
+        public const int FS_TYPE_MAX_LENGTH = 6;
         private string fsType;
         public string FsType
         {
             get { return fsType; }
-            private set { fsType = UsefulThings.setStringLength(value, FS_TYPE_LENGTH, '\0', UsefulThings.Alignments.LEFT); }
+            private set { fsType = UsefulThings.setStringLength(value, FS_TYPE_MAX_LENGTH, '\0', UsefulThings.Alignments.LEFT); }
         }
         //Размер лог. блока - 2 б
         private ushort clusterSize;
@@ -69,29 +71,28 @@ namespace HlwnOS.FileSystem
             private set { dataOffset = value; }
         }
 
-        public SuperBlock(FileManager fm, string fsType, ushort clusterSize, ushort rootSize, uint diskSize/*, ushort fat1Offset, ushort fat2Offset, uint rootOffset,uint dataOffset*/)
+        public SuperBlock(Controller ctrl, byte[] src)
         {
-            this.fm = fm;
+            this.ctrl = ctrl;
+            fromByteArray(src);
+        }
+
+        public SuperBlock(Controller ctrl, string fsType, ushort clusterSize, ushort rootSize, uint diskSize)
+        {
+            this.ctrl = ctrl;
             FsType = fsType;
             ClusterSize = clusterSize;
             RootSize = rootSize;
             DiskSize = diskSize;
             Fat1Offset = clusterSize;
-            Fat2Offset = (ushort)(fat1Offset + clusterSize * Math.Ceiling((double)(2 * diskSize / clusterSize) / clusterSize));
-            RootOffset = (uint)(fat2Offset + clusterSize * Math.Ceiling((double)(2 * diskSize / clusterSize) / clusterSize));
+            Fat2Offset = (ushort)(fat1Offset + clusterSize * Math.Ceiling((double)(FAT.ELEM_SIZE * diskSize / clusterSize) / clusterSize));
+            RootOffset = (uint)(fat2Offset + clusterSize * Math.Ceiling((double)(FAT.ELEM_SIZE * diskSize / clusterSize) / clusterSize));
             DataOffset = (uint)(rootOffset + rootSize);
         }
 
         public override byte[] toByteArray(bool expandToCluster)
         {
-            ArrayList buffer = new ArrayList(expandToCluster ? clusterSize : FS_TYPE_LENGTH +
-                Marshal.SizeOf(clusterSize) +
-                Marshal.SizeOf(rootSize) +
-                Marshal.SizeOf(diskSize) +
-                Marshal.SizeOf(fat1Offset) +
-                Marshal.SizeOf(fat2Offset) +
-                Marshal.SizeOf(rootOffset) +
-                Marshal.SizeOf(dataOffset));
+            ArrayList buffer = new ArrayList(expandToCluster ? clusterSize : SIZE);
 
             buffer.AddRange(Encoding.ASCII.GetBytes(fsType));
             buffer.AddRange(BitConverter.GetBytes(clusterSize));
@@ -102,38 +103,43 @@ namespace HlwnOS.FileSystem
             buffer.AddRange(BitConverter.GetBytes(rootOffset));
             buffer.AddRange(BitConverter.GetBytes(dataOffset));
 
+            if (expandToCluster)
+                buffer.AddRange(Encoding.ASCII.GetBytes(new String('\0', clusterSize - SIZE).ToArray()));
+
             return buffer.OfType<byte>().ToArray();
-
-            /*
-            //Запись информации
-            bw.Write(fsType.ToArray());
-            bw.Write(clusterSize);
-            bw.Write(rootSize);
-            bw.Write(diskSize);
-            bw.Write(fat1Offset);
-            bw.Write(fat2Offset);
-            bw.Write(rootOffset);
-            bw.Write(dataOffset);
-
-            //Количество занятых байтов
-            int total = FS_TYPE_LENGTH +
-                Marshal.SizeOf(clusterSize) +
-                Marshal.SizeOf(rootSize) +
-                Marshal.SizeOf(diskSize) +
-                Marshal.SizeOf(fat1Offset) +
-                Marshal.SizeOf(fat2Offset) +
-                Marshal.SizeOf(rootOffset) +
-                Marshal.SizeOf(dataOffset);
-
-            //Заполнение оставшегося места в суперблоке
-            for (int i = total; i < clusterSize; ++i)
-                bw.Write((byte)0);*/
-
         }
 
         public override void fromByteArray(byte[] buffer)
         {
-            throw new NotImplementedException();
+            int offset = 0;
+            FsType = Encoding.ASCII.GetString(buffer, offset, FS_TYPE_MAX_LENGTH);
+            offset = FS_TYPE_MAX_LENGTH;
+            ClusterSize = BitConverter.ToUInt16(buffer, offset);
+            offset += sizeof(ushort);
+            RootSize = BitConverter.ToUInt16(buffer, offset);
+            offset += sizeof(ushort);
+            DiskSize = BitConverter.ToUInt32(buffer, offset);
+            offset += sizeof(uint);
+            Fat1Offset = BitConverter.ToUInt16(buffer, offset);
+            offset += sizeof(ushort);
+            Fat2Offset = BitConverter.ToUInt16(buffer, offset);
+            offset += sizeof(ushort);
+            RootOffset = BitConverter.ToUInt32(buffer, offset);
+            offset += sizeof(uint);
+            DataOffset = BitConverter.ToUInt32(buffer, offset);
+            offset += sizeof(uint);
+        }
+
+        public override string ToString()
+        {
+            return "FS type: " + fsType +
+                "\nCluster size: " + clusterSize +
+                "\nRoot size: " + rootSize +
+                "\nDist size: " + diskSize +
+                "\nFAT1 offset: " + fat1Offset +
+                "\nFAT2 offset: " + fat2Offset +
+                "\nRoot offset: " + rootOffset +
+                "\nData offset: " + dataOffset;
         }
     }
 }

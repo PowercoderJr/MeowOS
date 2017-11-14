@@ -69,7 +69,7 @@
     <Compile Include="FileSystem\FAT.cs" />
     <Compile Include="FileSystem\FileHeader.cs" />
     <Compile Include="FileSystem\File.cs" />
-    <Compile Include="FileSystem\FileManager.cs" />
+    <Compile Include="FileSystem\Controller.cs" />
     <Compile Include="FileSystem\IConvertableFromByteArray.cs" />
     <Compile Include="FileSystem\IConvertableToByteArray.cs" />
     <Compile Include="FileSystem\SuperBlock.cs" />

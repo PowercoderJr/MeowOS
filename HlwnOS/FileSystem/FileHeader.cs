@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -144,7 +145,40 @@ namespace HlwnOS.FileSystem
 
         public void fromByteArray(byte[] buffer)
         {
-            throw new NotImplementedException();
+            int offset = 0;
+            Name = Encoding.ASCII.GetString(buffer, offset, NAME_MAX_LENGTH);
+            offset = NAME_MAX_LENGTH;
+            Extension = Encoding.ASCII.GetString(buffer, offset, EXTENSION_MAX_LENGTH);
+            offset += EXTENSION_MAX_LENGTH;
+            Size = BitConverter.ToUInt32(buffer, offset);
+            offset += sizeof(uint);
+            AccessRights = BitConverter.ToUInt16(buffer, offset);
+            offset += sizeof(ushort);
+            Flags = (byte)BitConverter.ToChar(buffer, offset);
+            offset += sizeof(byte);
+            Uid = BitConverter.ToUInt16(buffer, offset);
+            offset += sizeof(ushort);
+            Gid = BitConverter.ToUInt16(buffer, offset);
+            offset += sizeof(ushort);
+            FirstCluster = BitConverter.ToUInt16(buffer, offset);
+            offset += sizeof(ushort);
+            ChDate = BitConverter.ToUInt16(buffer, offset);
+            offset += sizeof(ushort);
+            ChTime = BitConverter.ToUInt16(buffer, offset);
+        }
+
+        public override string ToString()
+        {
+            return "Name: " + name +
+                "\nExtension: " + extension + 
+                "\nSize: " + size + 
+                "\nAccess rights: " + accessRights + 
+                "\nFlags: " + flags + 
+                "\nUid: " + uid + 
+                "\nGid: " + gid + 
+                "\nFirst cluster: " + firstCluster + 
+                "\nChange date: " + chDate + 
+                "\nChange time: " + chTime;
         }
     }
 }
