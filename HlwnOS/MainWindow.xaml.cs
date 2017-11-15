@@ -38,14 +38,15 @@ namespace HlwnOS
 
             try
             {
-                ctrl.createSpace("hlwn.fs");
-                ctrl.closeSpace();
+                ctrl.createSpace("hlwn.fs", "admin", "admin");
+
+                /*ctrl.closeSpace();
                 printSpace();
-                //fm.openSpace("hlwn.fs");
+                ctrl.openSpace("hlwn.fs");
                 ctrl.closeSpace();
-                printSpace();
+                printSpace();*/
             }
-            catch
+            finally
             {
                 ctrl.closeSpace();
             }

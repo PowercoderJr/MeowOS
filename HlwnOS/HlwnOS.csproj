@@ -57,6 +57,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AuthWindow.xaml.cs">
+      <DependentUpon>AuthWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UserInfo.cs" />
+    <Compile Include="Session.cs" />
+    <Page Include="AuthWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -70,8 +79,8 @@
     <Compile Include="FileSystem\FileHeader.cs" />
     <Compile Include="FileSystem\File.cs" />
     <Compile Include="FileSystem\Controller.cs" />
-    <Compile Include="FileSystem\IConvertableFromByteArray.cs" />
-    <Compile Include="FileSystem\IConvertableToByteArray.cs" />
+    <Compile Include="FileSystem\IConvertableFromBytes.cs" />
+    <Compile Include="FileSystem\IConvertableToBytes.cs" />
     <Compile Include="FileSystem\SuperBlock.cs" />
     <Compile Include="FileSystem\UsefulThings.cs" />
     <Compile Include="MainWindow.xaml.cs">

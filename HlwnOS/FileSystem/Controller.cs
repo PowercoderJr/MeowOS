@@ -44,7 +44,7 @@ namespace HlwnOS.FileSystem
             ;
         }
 
-        public void createSpace(string path)
+        public void createSpace(string path, string adminLogin, string adminPassword)
         {
             closeSpace();
             this.path = path;
@@ -69,15 +69,31 @@ namespace HlwnOS.FileSystem
             for (int i = 0; i < remainder; ++i)
                 bw.Write((byte)0);
 
+            //Заголовок файла с группами пользователей
+            FileHeader groupsHeader = new FileHeader("groups", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
+            writeFile("/", groupsHeader, Encoding.ASCII.GetBytes("1\nmain\n"));
             //Заголовок файла с учётными записями пользователей
-            FileHeader users = new FileHeader("users", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            FileHeader users2 = new FileHeader("users2", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
+            FileHeader usersHeader = new FileHeader("users", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
+            writeFile("/", usersHeader, Encoding.ASCII.GetBytes("1\n" + adminLogin + "\n" + adminPassword + "\n1\n" + (int)UserInfo.Roles.ADMIN));
             //users.Data = "admin\nadmin\nadmin\nguest\n\nuser";
+            /*FileHeader users2 = new FileHeader("users2", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
             string kbyte = "begin56789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCend";
             writeFile("/", users, Encoding.ASCII.GetBytes(kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte)); //16KB
             writeFile("/", users2, Encoding.ASCII.GetBytes(kbyte + kbyte + kbyte + kbyte + kbyte)); //5KB
             deleteFile(users);
-            writeFile("/", users, Encoding.ASCII.GetBytes(kbyte + kbyte + kbyte + kbyte + kbyte + kbyte)); //6KB
+            writeFile("/", users, Encoding.ASCII.GetBytes(kbyte + kbyte + kbyte + kbyte + kbyte + kbyte)); //6KB*/
+
+            FileHeader kek1 = new FileHeader("kek1", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
+            writeFile("/", kek1, Encoding.ASCII.GetBytes(""));
+            FileHeader kek2 = new FileHeader("kek2", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
+            writeFile("/kek1/", kek2, Encoding.ASCII.GetBytes(""));
+            FileHeader kek3 = new FileHeader("kek3", "aza", 0, 1, 1);
+            writeFile("/kek1/kek2/", kek3, Encoding.ASCII.GetBytes("Mama ama kek3.aza!"));
+            Console.WriteLine(groupsHeader.FirstCluster);
+            Console.WriteLine(usersHeader.FirstCluster);
+            Console.WriteLine(kek1.FirstCluster);
+            Console.WriteLine(kek2.FirstCluster);
+            Console.WriteLine(kek3.FirstCluster);
         }
 
         public void openSpace(string path)
@@ -87,12 +103,12 @@ namespace HlwnOS.FileSystem
             space = System.IO.File.Open(path, FileMode.Open, FileAccess.ReadWrite); //TODO 14.11: предупреждать, если файл не найден
             bw = new BinaryWriter(space);
             br = new BinaryReader(space);
-            
+
             //Системная область
-            this.SuperBlock = new SuperBlock(this, br.ReadBytes(SuperBlock.SIZE));
-            Fat = new FAT(this, (int)superBlock.DiskSize / superBlock.ClusterSize);
+            br.BaseStream.Seek(0, SeekOrigin.Begin);
+            this.SuperBlock = new SuperBlock(this, br.BaseStream);
             br.BaseStream.Seek(superBlock.Fat1Offset, SeekOrigin.Begin);
-            Fat.fromByteArray(br.ReadBytes(Fat.TableSize * FAT.ELEM_SIZE));
+            Fat = new FAT(this, (int)superBlock.DiskSize / superBlock.ClusterSize, br.BaseStream);
 
             //Корневой каталог
             br.BaseStream.Seek((int)superBlock.RootOffset, SeekOrigin.Begin);
@@ -121,16 +137,56 @@ namespace HlwnOS.FileSystem
             }
         }
         
-        public int writeFile(string path, FileHeader header, byte[] data)
+        public int writeFile(string path, FileHeader fileHeader, byte[] data)
         {
             writeArea(Areas.FAT2);
-            header.FirstCluster = fat.getFreeClusterIndex();
-            header.Size = (uint)data.Length;
+            fileHeader.FirstCluster = fat.getFreeClusterIndex();
+            fileHeader.Size = (uint)data.Length;
+            if (data.Length == 0)
+                data = Encoding.ASCII.GetBytes("\0");
 
             //Запись заголовка
             //TODO 14.11: тут использовать путь из path
-            rootDir = header.toByteArray(false) + rootDir.Remove(0, FileHeader.SIZE);
-            writeArea(Areas.ROOTDIR);
+            //TODO 15.11: проверить, что такого файла ещё нет
+            if (path != null)
+                while (path.Length > 0 && path[path.Length - 1] == UsefulThings.PATH_SEPARATOR)
+                {
+                    path = path.Remove(path.Length - 1);
+                }
+            if (path == null || path.Length == 0)
+            {
+                //TODO 15.11: проверить, есть ли ещё место в корневом каталоге
+                rootDir = Encoding.ASCII.GetString(fileHeader.toByteArray(false)) + rootDir.Remove(superBlock.RootSize - FileHeader.SIZE, FileHeader.SIZE);
+                writeArea(Areas.ROOTDIR);
+            }
+            else
+            {
+                string pathWithoutLastDir = path.Remove(path.LastIndexOf(UsefulThings.PATH_SEPARATOR));
+                string lastDirName = path.Substring(path.LastIndexOf(UsefulThings.PATH_SEPARATOR) + 1);
+                FileHeader lastDirHeader = getFileHeader(pathWithoutLastDir, lastDirName);
+                if (lastDirHeader == null)
+                    return 1;
+                br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
+                //В directory записывается fileHeader (входной параметр), за которым следует содержимое директории, к которой относится lastDirHeader
+                byte[] directory = fileHeader.toByteArray(false).Concat(br.ReadBytes((int)lastDirHeader.Size).AsEnumerable()).ToArray();
+
+                /*int dirOldClSize = (int)Math.Ceiling((double)(directory.Length - FileHeader.SIZE) / superBlock.ClusterSize);
+                int dirNewClSize = (int)Math.Ceiling((double)(directory.Length) / superBlock.ClusterSize);
+                if (dirNewClSize > dirOldClSize)
+                {
+                    //Перезапись требует больше блоков
+                    deleteFile(pathWithoutLastDir, lastDirHeader);
+                    writeFile(pathWithoutLastDir, lastDirHeader, directory);
+                }
+                else
+                {
+                    //Перезаписать можно на старое место
+                    lastDirHeader.Size += FileHeader.SIZE;
+                    bw.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
+                }*/
+                deleteFile(pathWithoutLastDir, lastDirHeader);
+                writeFile(pathWithoutLastDir, lastDirHeader, directory);
+            }
 
             //Запись данных
             int toWrite = data.Length, i = 0, offset, toWriteOnThisStep;
@@ -163,12 +219,13 @@ namespace HlwnOS.FileSystem
             return 0;
         }
 
-        public void deleteFile(FileHeader file)
+        public void deleteFile(string path, FileHeader header)
         {
-            int currCluster = file.FirstCluster;
+            int currCluster = header.FirstCluster;
             if (currCluster < superBlock.DataOffset / superBlock.ClusterSize)
                 return; //Попытка обнулить системные блоки или блоки корневого каталога
 
+            //TODO 15.11: удалять также запись в родительской директории
             writeArea(Areas.FAT2);
             int nextCluster;
             while (fat.Table[currCluster] != FAT.CL_EOF)
@@ -207,6 +264,85 @@ namespace HlwnOS.FileSystem
             }
             bw.Seek((int)offset, SeekOrigin.Begin);
             bw.Write(buffer);
+        }
+
+        public void restoreFat1()
+        {
+            //TODO
+        }
+
+        private FileHeader getFileHeader(string path, string filename, string extension = "")
+        {
+            //TODO SOMETHING?
+            filename = UsefulThings.setStringLength(filename, FileHeader.NAME_MAX_LENGTH);
+            extension = UsefulThings.setStringLength(extension, FileHeader.EXTENSION_MAX_LENGTH);
+
+            uint currCluster = superBlock.RootOffset / superBlock.ClusterSize, currClusterOffset;
+            int clustersPassed, currDirSize = superBlock.RootSize;
+            string[] dirs = path.Split(UsefulThings.PATH_SEPARATOR.ToString().ToArray(), StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < dirs.Length; ++i)
+                dirs[i] = UsefulThings.setStringLength(dirs[i], FileHeader.NAME_MAX_LENGTH);
+            int nextDir = 0;
+            FileHeader fh = new FileHeader();
+            bool success = true; //становится false каждый раз, когда начинается проход по очередной директории; становится true, если во время прохода найден следующий заголовок
+            
+            //Цикл по директориям пути
+            while (success && nextDir < dirs.Length)
+            {
+                success = false;
+                clustersPassed = 0;
+                //Цикл по блокам файла
+                while (!success && currCluster != FAT.CL_EOF)
+                {
+                    currClusterOffset = currCluster * superBlock.ClusterSize;
+                    br.BaseStream.Seek(currClusterOffset, SeekOrigin.Begin);
+                    //Цикл по записям блока
+                    do
+                    {
+                        fh.fromByteStream(br.BaseStream);
+                        success = fh.Name.Equals(dirs[nextDir]) && (fh.Flags & (byte)FileHeader.FlagsList.FL_DIRECTORY) > 0;
+                        //Пока не успех И позиция в пределах текущего блока И считано меньше байт, чем в файле директории
+                    } while (!success && br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize && clustersPassed * superBlock.ClusterSize + br.BaseStream.Position - currClusterOffset < currDirSize);
+                    currCluster = fat.Table[currCluster];
+                    ++clustersPassed;
+                }
+                currCluster = fh.FirstCluster;
+                ++nextDir;
+            }
+
+            if (success)
+            {
+                //Добрались до нужной директории, ищем сам файл
+                success = false;
+                clustersPassed = 0;
+                //Цикл по блокам файла
+                while (!success && currCluster != FAT.CL_EOF)
+                {
+                    currClusterOffset = currCluster * superBlock.ClusterSize;
+                    br.BaseStream.Seek(currClusterOffset, SeekOrigin.Begin);
+                    //Цикл по записям блока
+                    do
+                    {
+                        fh.fromByteStream(br.BaseStream);
+                        success = fh.Name.Equals(filename) && fh.Extension.Equals(extension);//Успех ли, если найденный файл - каталог? Пока закомментировано - да. && (fh.Flags & (byte)FileHeader.FlagsList.FL_DIRECTORY) == 0;
+                        //Пока не успех И позиция в пределах текущего блока И считано меньше байт, чем в файле директории
+                    } while (!success && br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize && clustersPassed * superBlock.ClusterSize + br.BaseStream.Position - currClusterOffset < currDirSize);
+                    //} while (!success && br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize);
+                    currCluster = fat.Table[currCluster];
+                    ++clustersPassed;
+                }
+            }
+
+            if (success)
+            {
+                //Файл найден
+                return fh;
+            }
+            else
+            {
+                //Файл не найден
+                return null;
+            }
         }
     }
 }

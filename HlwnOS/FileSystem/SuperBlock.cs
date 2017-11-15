@@ -71,6 +71,12 @@ namespace HlwnOS.FileSystem
             private set { dataOffset = value; }
         }
 
+        public SuperBlock(Controller ctrl, Stream input)
+        {
+            this.ctrl = ctrl;
+            fromByteStream(input);
+        }
+
         public SuperBlock(Controller ctrl, byte[] src)
         {
             this.ctrl = ctrl;
@@ -128,6 +134,12 @@ namespace HlwnOS.FileSystem
             offset += sizeof(uint);
             DataOffset = BitConverter.ToUInt32(buffer, offset);
             offset += sizeof(uint);
+        }
+
+        public override void fromByteStream(Stream input)
+        {
+            BinaryReader br = new BinaryReader(input);
+            fromByteArray(br.ReadBytes(SIZE));
         }
 
         public override string ToString()

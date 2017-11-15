@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS.FileSystem
 {
-    class FileHeader : IConvertableToByteArray, IConvertableFromByteArray
+    class FileHeader : IConvertableToBytes, IConvertableFromBytes
     {
         public enum FlagsList { FL_READONLY = 1 << 0, FL_HIDDEN = 1 << 1, FL_SYSTEM = 1 << 2, FL_DIRECTORY = 1 << 3 };
 
@@ -17,21 +17,21 @@ namespace HlwnOS.FileSystem
         public const ushort DEFAULT_RIGHTS = (7 << 6) + (5 << 3) + 5;
 
         //Имя файла - 8 б
-        const int NAME_MAX_LENGTH = 8;
+        public const int NAME_MAX_LENGTH = 8;
         private string name;
         public string Name
         {
             get { return name; }
-            set { name = UsefulThings.setStringLength(value, NAME_MAX_LENGTH, '\0', UsefulThings.Alignments.LEFT); }
+            set { name = UsefulThings.setStringLength(value, NAME_MAX_LENGTH); }
         }
 
         //Расширение - 3 б
-        const int EXTENSION_MAX_LENGTH = 3;
+        public const int EXTENSION_MAX_LENGTH = 3;
         private string extension;
         public string Extension
         {
             get { return extension; }
-            set { extension = UsefulThings.setStringLength(value, EXTENSION_MAX_LENGTH, '\0', UsefulThings.Alignments.LEFT); }
+            set { extension = UsefulThings.setStringLength(value, EXTENSION_MAX_LENGTH); }
         }
 
         //Размер - 4 б
@@ -101,6 +101,13 @@ namespace HlwnOS.FileSystem
         //Зарезервировано - 4 б
         public const uint reserved = 0;
 
+        public FileHeader() { }
+
+        public FileHeader(Stream input)
+        {
+            fromByteStream(input);
+        }
+
         public FileHeader(string name, string extension, byte flags, ushort uid, ushort gid)
         {
             Name = name;
@@ -165,6 +172,12 @@ namespace HlwnOS.FileSystem
             ChDate = BitConverter.ToUInt16(buffer, offset);
             offset += sizeof(ushort);
             ChTime = BitConverter.ToUInt16(buffer, offset);
+        }
+
+        public void fromByteStream(Stream input)
+        {
+            BinaryReader br = new BinaryReader(input);
+            fromByteArray(br.ReadBytes(SIZE));
         }
 
         public override string ToString()

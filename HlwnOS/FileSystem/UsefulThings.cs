@@ -9,8 +9,9 @@ namespace HlwnOS.FileSystem
     static class UsefulThings
     {
         public enum Alignments { LEFT, RIGHT }
+        public const char PATH_SEPARATOR = '/';
 
-        public static string setStringLength(string input, int maxLength, char placeholder, Alignments alignment)
+        public static string setStringLength(string input, int maxLength, char placeholder = '\0', Alignments alignment = Alignments.LEFT)
         {
             if (input.Length == maxLength)
                 return input;

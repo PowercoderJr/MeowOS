@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HlwnOS.FileSystem
+namespace HlwnOS
 {
-    interface IConvertableToByteArray
+    static class Session
     {
-        byte[] toByteArray(bool expandToCluster);
+        static UserInfo userInfo;
     }
 }
