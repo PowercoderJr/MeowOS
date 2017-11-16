@@ -32,8 +32,8 @@ namespace HlwnOS.FileSystem
             get { return fat; }
             set { fat = value; }
         }
-        private string rootDir;
-        public string RootDir
+        private byte[] rootDir;
+        public byte[] RootDir
         {
             get { return rootDir; }
             set { rootDir = value; }
@@ -89,11 +89,8 @@ namespace HlwnOS.FileSystem
             writeFile("/kek1/", kek2, Encoding.ASCII.GetBytes(""));
             FileHeader kek3 = new FileHeader("kek3", "aza", 0, 1, 1);
             writeFile("/kek1/kek2/", kek3, Encoding.ASCII.GetBytes("Mama ama kek3.aza!"));
-            Console.WriteLine(groupsHeader.FirstCluster);
-            Console.WriteLine(usersHeader.FirstCluster);
-            Console.WriteLine(kek1.FirstCluster);
-            Console.WriteLine(kek2.FirstCluster);
-            Console.WriteLine(kek3.FirstCluster);
+            FileHeader kek4 = new FileHeader("kek4", "aza", 0, 1, 1);
+            writeFile("/kek1/kek2/", kek4, Encoding.ASCII.GetBytes("Mama ama kek4.aza!"));
         }
 
         public void openSpace(string path)
@@ -112,7 +109,8 @@ namespace HlwnOS.FileSystem
 
             //Корневой каталог
             br.BaseStream.Seek((int)superBlock.RootOffset, SeekOrigin.Begin);
-            rootDir = Encoding.ASCII.GetString(br.ReadBytes(superBlock.RootSize));
+            //rootDir = Encoding.ASCII.GetString(br.ReadBytes(superBlock.RootSize));
+            rootDir = br.ReadBytes(superBlock.RootSize);
         }
 
         public void closeSpace()
@@ -148,21 +146,18 @@ namespace HlwnOS.FileSystem
             //Запись заголовка
             //TODO 14.11: тут использовать путь из path
             //TODO 15.11: проверить, что такого файла ещё нет
-            if (path != null)
-                while (path.Length > 0 && path[path.Length - 1] == UsefulThings.PATH_SEPARATOR)
-                {
-                    path = path.Remove(path.Length - 1);
-                }
+            path = UsefulThings.clearExcessSeparators(path);
             if (path == null || path.Length == 0)
             {
                 //TODO 15.11: проверить, есть ли ещё место в корневом каталоге
-                rootDir = Encoding.ASCII.GetString(fileHeader.toByteArray(false)) + rootDir.Remove(superBlock.RootSize - FileHeader.SIZE, FileHeader.SIZE);
+                //rootDir = Encoding.ASCII.GetString(fileHeader.toByteArray(false)) + rootDir.Remove(superBlock.RootSize - FileHeader.SIZE, FileHeader.SIZE);
+                rootDir = fileHeader.toByteArray(false).Concat(rootDir.Take(superBlock.RootSize - FileHeader.SIZE)).ToArray();
                 writeArea(Areas.ROOTDIR);
             }
             else
             {
-                string pathWithoutLastDir = path.Remove(path.LastIndexOf(UsefulThings.PATH_SEPARATOR));
-                string lastDirName = path.Substring(path.LastIndexOf(UsefulThings.PATH_SEPARATOR) + 1);
+                string pathWithoutLastDir, lastDirName;// = path.Substring(path.LastIndexOf(UsefulThings.PATH_SEPARATOR) + 1);
+                UsefulThings.detachLastFilename(path, out pathWithoutLastDir, out lastDirName);
                 FileHeader lastDirHeader = getFileHeader(pathWithoutLastDir, lastDirName);
                 if (lastDirHeader == null)
                     return 1;
@@ -219,13 +214,64 @@ namespace HlwnOS.FileSystem
             return 0;
         }
 
-        public void deleteFile(string path, FileHeader header)
+        public int deleteFile(string path, FileHeader fileHeader, bool deleteHeader = true)
         {
-            int currCluster = header.FirstCluster;
+            int currCluster = fileHeader.FirstCluster;
             if (currCluster < superBlock.DataOffset / superBlock.ClusterSize)
-                return; //Попытка обнулить системные блоки или блоки корневого каталога
+                return 1; //Попытка обнулить системные блоки или блоки корневого каталога
 
-            //TODO 15.11: удалять также запись в родительской директории
+            if (deleteHeader)
+            {
+                //Удаление записи из родительской директории
+                path = UsefulThings.clearExcessSeparators(path);
+                string pathWithoutLast, last;
+                UsefulThings.detachLastFilename(path, out pathWithoutLast, out last);
+                FileHeader fh = new FileHeader();
+                int offset;
+                bool success = false;
+                if (path.Length == 0)
+                {
+                    offset = 0;
+                    do
+                    {
+                        fh.fromByteArray(rootDir.Skip(offset).ToArray());
+                        offset += FileHeader.SIZE;
+                        success = fh.Name.Equals(fileHeader.Name) && fh.Extension.Equals(fileHeader.Extension);
+                    } while (!success && offset < superBlock.RootSize && fh.Name[0] != '\0');
+                    if (!success)
+                        return 2; //Файл не найден
+                    rootDir[offset - FileHeader.SIZE] = (byte)UsefulThings.DLETED_MARK;
+                    writeArea(Areas.ROOTDIR);
+                }
+                else
+                {
+                    FileHeader parentDir = getFileHeader(pathWithoutLast, last);
+                    if (parentDir == null)
+                        return 2; //Файл не найден
+                    int dirClustersPassed = 0, currDirCluster = parentDir.FirstCluster, currDirClusterOffset;
+                    //Цикл по блокам файла
+                    while (!success && currDirCluster != FAT.CL_EOF)
+                    {
+                        currDirClusterOffset = currDirCluster * superBlock.ClusterSize;
+                        br.BaseStream.Seek(currDirClusterOffset, SeekOrigin.Begin);
+                        //Цикл по записям блока
+                        do
+                        {
+                            fh.fromByteStream(br.BaseStream);
+                            success = fh.Name.Equals(fileHeader.Name) && fh.Extension.Equals(fileHeader.Extension);
+                            //Пока не успех И позиция в пределах текущего блока И считано меньше байт, чем в файле директории
+                        } while (!success && br.BaseStream.Position - currDirClusterOffset < superBlock.ClusterSize && dirClustersPassed * superBlock.ClusterSize + br.BaseStream.Position - currDirClusterOffset < parentDir.Size);
+                        currDirCluster = fat.Table[currDirCluster];
+                        ++dirClustersPassed;
+                    }
+                    if (!success)
+                        return 2; //Файл не найден
+                    bw.Seek(-FileHeader.SIZE, SeekOrigin.Current);
+                    bw.Write(UsefulThings.DLETED_MARK);
+                }
+            }
+
+            //Помечание блоков как свободных
             writeArea(Areas.FAT2);
             int nextCluster;
             while (fat.Table[currCluster] != FAT.CL_EOF)
@@ -236,6 +282,7 @@ namespace HlwnOS.FileSystem
             }
             fat.Table[currCluster] = FAT.CL_FREE;
             writeArea(Areas.FAT1);
+            return 0;
         }
 
         private void writeArea(Areas area)
@@ -253,7 +300,8 @@ namespace HlwnOS.FileSystem
                     offset = superBlock.Fat2Offset;
                     break;
                 case Areas.ROOTDIR:
-                    buffer = Encoding.ASCII.GetBytes(rootDir);
+                    //buffer = Encoding.ASCII.GetBytes(rootDir);
+                    buffer = rootDir;
                     offset = superBlock.RootOffset;
                     break;
                 case Areas.SUPERBLOCK:
@@ -302,6 +350,8 @@ namespace HlwnOS.FileSystem
                         fh.fromByteStream(br.BaseStream);
                         success = fh.Name.Equals(dirs[nextDir]) && (fh.Flags & (byte)FileHeader.FlagsList.FL_DIRECTORY) > 0;
                         //Пока не успех И позиция в пределах текущего блока И считано меньше байт, чем в файле директории
+                        //TODO 16.11: добавить проверку считанного заголовка на пустое имя (полезно при чтении корневого каталога)
+                        //            переписать длинное логическое выражение коротким выражением с переменными
                     } while (!success && br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize && clustersPassed * superBlock.ClusterSize + br.BaseStream.Position - currClusterOffset < currDirSize);
                     currCluster = fat.Table[currCluster];
                     ++clustersPassed;

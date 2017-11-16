@@ -34,12 +34,11 @@ namespace HlwnOS
             uint diskSize = 1 * Controller.FACTOR * Controller.FACTOR; //Раздел = 50 МБ (или 1 МБ для тестов)
             ctrl.SuperBlock = new SuperBlock(ctrl, "HlwnFS", clusterSize, rootSize, diskSize);
             ctrl.Fat = new FAT(ctrl, (int)(diskSize / clusterSize));
-            ctrl.RootDir = new String('\0', rootSize).ToString();
+            ctrl.RootDir = Encoding.ASCII.GetBytes(new String('\0', rootSize));
 
             try
             {
                 ctrl.createSpace("hlwn.fs", "admin", "admin");
-
                 /*ctrl.closeSpace();
                 printSpace();
                 ctrl.openSpace("hlwn.fs");
