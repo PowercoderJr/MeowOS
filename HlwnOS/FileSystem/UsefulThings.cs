@@ -10,7 +10,7 @@ namespace HlwnOS.FileSystem
     {
         public enum Alignments { LEFT, RIGHT }
         public const char PATH_SEPARATOR = '/';
-        public const char DLETED_MARK = '$';
+        public const char DELETED_MARK = '$';
 
         public static string setStringLength(string input, int maxLength, char placeholder = '\0', Alignments alignment = Alignments.LEFT)
         {

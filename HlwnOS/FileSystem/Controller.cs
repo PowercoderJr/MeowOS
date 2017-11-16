@@ -91,6 +91,7 @@ namespace HlwnOS.FileSystem
             writeFile("/kek1/kek2/", kek3, Encoding.ASCII.GetBytes("Mama ama kek3.aza!"));
             FileHeader kek4 = new FileHeader("kek4", "aza", 0, 1, 1);
             writeFile("/kek1/kek2/", kek4, Encoding.ASCII.GetBytes("Mama ama kek4.aza!"));
+            deleteFile("/kek1/kek2/", kek3);
         }
 
         public void openSpace(string path)
@@ -147,11 +148,22 @@ namespace HlwnOS.FileSystem
             //TODO 14.11: тут использовать путь из path
             //TODO 15.11: проверить, что такого файла ещё нет
             path = UsefulThings.clearExcessSeparators(path);
+            int posToWrite;
             if (path == null || path.Length == 0)
             {
-                //TODO 15.11: проверить, есть ли ещё место в корневом каталоге
                 //rootDir = Encoding.ASCII.GetString(fileHeader.toByteArray(false)) + rootDir.Remove(superBlock.RootSize - FileHeader.SIZE, FileHeader.SIZE);
-                rootDir = fileHeader.toByteArray(false).Concat(rootDir.Take(superBlock.RootSize - FileHeader.SIZE)).ToArray();
+                //rootDir = fileHeader.toByteArray(false).Concat(rootDir.Take(superBlock.RootSize - FileHeader.SIZE)).ToArray();
+                posToWrite = 0;
+                while (posToWrite + FileHeader.SIZE <= superBlock.RootSize)
+                {
+                    if (rootDir[posToWrite] == '\0' || rootDir[posToWrite] == UsefulThings.DELETED_MARK)
+                        break;
+                    else
+                        posToWrite += FileHeader.SIZE;
+                }
+                if (posToWrite + FileHeader.SIZE > superBlock.RootSize)
+                    return 2; //Нет места в корневом каталоге
+                rootDir = rootDir.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(rootDir.Skip(posToWrite + FileHeader.SIZE)).ToArray();
                 writeArea(Areas.ROOTDIR);
             }
             else
@@ -163,7 +175,20 @@ namespace HlwnOS.FileSystem
                     return 1;
                 br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
                 //В directory записывается fileHeader (входной параметр), за которым следует содержимое директории, к которой относится lastDirHeader
-                byte[] directory = fileHeader.toByteArray(false).Concat(br.ReadBytes((int)lastDirHeader.Size).AsEnumerable()).ToArray();
+                //byte[] directory = fileHeader.toByteArray(false).Concat(br.ReadBytes((int)lastDirHeader.Size).AsEnumerable()).ToArray();
+                byte[] directory = br.ReadBytes((int)lastDirHeader.Size);
+                posToWrite = 0;
+                while (posToWrite + FileHeader.SIZE <= directory.Length)
+                {
+                    if (directory[posToWrite] == '\0' || directory[posToWrite] == UsefulThings.DELETED_MARK)
+                        break;
+                    else
+                        posToWrite += FileHeader.SIZE;
+                }
+                if (posToWrite + FileHeader.SIZE > superBlock.RootSize)
+                    directory = directory.Concat(fileHeader.toByteArray(false)).ToArray();
+                else
+                    directory = directory.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(directory.Skip(posToWrite + FileHeader.SIZE)).ToArray();
 
                 /*int dirOldClSize = (int)Math.Ceiling((double)(directory.Length - FileHeader.SIZE) / superBlock.ClusterSize);
                 int dirNewClSize = (int)Math.Ceiling((double)(directory.Length) / superBlock.ClusterSize);
@@ -240,7 +265,7 @@ namespace HlwnOS.FileSystem
                     } while (!success && offset < superBlock.RootSize && fh.Name[0] != '\0');
                     if (!success)
                         return 2; //Файл не найден
-                    rootDir[offset - FileHeader.SIZE] = (byte)UsefulThings.DLETED_MARK;
+                    rootDir[offset - FileHeader.SIZE] = (byte)UsefulThings.DELETED_MARK;
                     writeArea(Areas.ROOTDIR);
                 }
                 else
@@ -267,7 +292,7 @@ namespace HlwnOS.FileSystem
                     if (!success)
                         return 2; //Файл не найден
                     bw.Seek(-FileHeader.SIZE, SeekOrigin.Current);
-                    bw.Write(UsefulThings.DLETED_MARK);
+                    bw.Write(UsefulThings.DELETED_MARK);
                 }
             }
 
