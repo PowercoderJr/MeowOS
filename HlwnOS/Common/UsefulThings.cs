@@ -3,14 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
 
-namespace HlwnOS.FileSystem
+namespace HlwnOS
 {
     static class UsefulThings
     {
         public enum Alignments { LEFT, RIGHT }
         public const char PATH_SEPARATOR = '/';
+        public const char USERDATA_SEPARATOR = '|';
         public const char DELETED_MARK = '$';
+        public const string EOLN_STR = "\r\n";
+        public static readonly byte[] EOLN_BYTES = Encoding.ASCII.GetBytes(EOLN_STR);
 
         public static string setStringLength(string input, int maxLength, char placeholder = '\0', Alignments alignment = Alignments.LEFT)
         {
@@ -65,6 +70,16 @@ namespace HlwnOS.FileSystem
                 pathWithoutLast = path.Remove(path.LastIndexOf(PATH_SEPARATOR));
                 last = path.Substring(path.LastIndexOf(PATH_SEPARATOR) + 1);
             }
+        }
+
+        public static void controlLettersAndDigits(TextBox tb)
+        {
+            int ss = tb.SelectionStart - 1;
+            string text = tb.Text;
+            tb.Text = string.Concat(tb.Text.Where(char.IsLetterOrDigit));
+
+            if (!tb.Text.Equals(text))
+                tb.SelectionStart = ss;
         }
     }
 }

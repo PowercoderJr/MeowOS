@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS.FileSystem
 {
-    class FAT : AbstractElement
+    public class FAT : AbstractElement
     {
         public const ushort CL_FREE         = 0x0000;
         public const ushort CL_SYSTEM       = 0xFFF0;
@@ -19,11 +19,7 @@ namespace HlwnOS.FileSystem
 
         public const int ELEM_SIZE = sizeof(ushort);
         private ushort[] table;
-        public ushort[] Table
-        {
-            get { return table; }
-            set { table = value; }
-        }
+        public ushort[] Table => table;
         private int tableSize;
         public int TableSize
         {

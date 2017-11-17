@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS.FileSystem
 {
-    class FileHeader : IConvertableToBytes, IConvertableFromBytes
+    public class FileHeader : IConvertibleToBytes, IConvertibleFromBytes
     {
         public enum FlagsList { FL_READONLY = 1 << 0, FL_HIDDEN = 1 << 1, FL_SYSTEM = 1 << 2, FL_DIRECTORY = 1 << 3 };
 
@@ -38,64 +38,64 @@ namespace HlwnOS.FileSystem
         private uint size;
         public uint Size
         {
-            get { return size; }
-            set { size = value; }
+            get => size;
+            set => size = value;
         }
 
         //Права доступа - 2 б
         private ushort accessRights;
         public ushort AccessRights
         {
-            get { return accessRights; }
-            set { accessRights = value; }
+            get => accessRights;
+            set => accessRights = value;
         }
 
         //Флаги - 1 б
         private byte flags;
         public byte Flags
         {
-            get { return flags; }
-            set { flags = value; }
+            get => flags;
+            set => flags = value;
         }
 
         //ID пользователя - 2 б
         private ushort uid;
         public ushort Uid
         {
-            get { return uid; }
-            set { uid = value; }
+            get => uid;
+            set => uid = value;
         }
 
         //ID группы - 2 б
         private ushort gid;
         public ushort Gid
         {
-            get { return gid; }
-            set { gid = value; }
+            get => gid;
+            set => gid = value;
         }
 
         //Номер начального кластера - 2 б
         private ushort firstCluster;
         public ushort FirstCluster
         {
-            get { return firstCluster; }
-            set { firstCluster = value; }
+            get => firstCluster;
+            set => firstCluster = value;
         }
 
         //Дата изменения - 2 б
         private ushort chDate;
         public ushort ChDate
         {
-            get { return chDate; }
-            set { chDate = value; } 
+            get => chDate;
+            set => chDate = value;
         }
 
         //Время изменения - 2 б
         private ushort chTime;
         public ushort ChTime
         {
-            get { return chTime; }
-            set { chTime = value; }
+            get => chTime;
+            set => chTime = value;
         }
 
         //Зарезервировано - 4 б

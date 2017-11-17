@@ -8,7 +8,7 @@ using HlwnOS.FileSystem;
 
 namespace HlwnOS.FileSystem
 {
-    abstract class AbstractElement : IConvertableToBytes, IConvertableFromBytes
+    public abstract class AbstractElement : IConvertibleToBytes, IConvertibleFromBytes
     {
         protected Controller ctrl;
 

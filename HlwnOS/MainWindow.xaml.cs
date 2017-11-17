@@ -23,31 +23,17 @@ namespace HlwnOS
     public partial class MainWindow : Window
     {
         private Controller ctrl;
-
-        public MainWindow()
+        
+        public MainWindow(string path)
         {
             InitializeComponent();
-
-            ctrl = new Controller();  
-            ushort clusterSize = Controller.FACTOR * 4; //Блок = 4 КБ
-            ushort rootSize = (ushort)(clusterSize * 10); //Корневой каталог = 10 блоков
-            uint diskSize = 1 * Controller.FACTOR * Controller.FACTOR; //Раздел = 50 МБ (или 1 МБ для тестов)
-            ctrl.SuperBlock = new SuperBlock(ctrl, "HlwnFS", clusterSize, rootSize, diskSize);
-            ctrl.Fat = new FAT(ctrl, (int)(diskSize / clusterSize));
-            ctrl.RootDir = Encoding.ASCII.GetBytes(new String('\0', rootSize));
-
             try
             {
-                ctrl.createSpace("hlwn.fs", "admin", "admin");
-                /*ctrl.closeSpace();
-                printSpace();
-                ctrl.openSpace("hlwn.fs");
-                ctrl.closeSpace();
-                printSpace();*/
+                ctrl.openSpace(path);
             }
-            finally
+            catch
             {
-                ctrl.closeSpace();
+                //TODO
             }
         }
 

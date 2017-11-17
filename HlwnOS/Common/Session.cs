@@ -8,6 +8,11 @@ namespace HlwnOS
 {
     static class Session
     {
-        static UserInfo userInfo;
+        public static UserInfo userInfo;
+
+        public static void clear()
+        {
+            userInfo = null;
+        }
     }
 }

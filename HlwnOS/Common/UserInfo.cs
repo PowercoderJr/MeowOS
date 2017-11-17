@@ -1,14 +1,17 @@
-﻿using System;
+﻿using HlwnOS.FileSystem;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace HlwnOS
 {
     class UserInfo
     {
         public enum Roles { ADMIN, USER, GUEST };
+        public const string DEFAULT_GROUP = "main";
 
         private int uid;
         public int Uid { get { return uid; } }

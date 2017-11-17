@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS.FileSystem
 {
-    class SuperBlock : AbstractElement
+    public class SuperBlock : AbstractElement
     {
         public const int SIZE = FS_TYPE_MAX_LENGTH + sizeof(ushort) + sizeof(ushort) + sizeof(uint) + sizeof(ushort) + sizeof(ushort) + sizeof(uint) + sizeof(uint);
 
@@ -25,50 +25,56 @@ namespace HlwnOS.FileSystem
         private ushort clusterSize;
         public ushort ClusterSize
         {
-            get { return clusterSize; }
-            private set { clusterSize = value; }
+            get => clusterSize;
+            set => clusterSize = value;
         }
+
         //Размер корневого каталога - 2 б
         private ushort rootSize;
         public ushort RootSize
         {
-            get { return rootSize; }
-            private set { rootSize = value; }
+            get => rootSize;
+            set => rootSize = value;
         }
+
         //Размер раздела - 4 б
         private uint diskSize;
         public uint DiskSize
         {
-            get { return diskSize; }
-            private set { diskSize = value; }
+            get => diskSize;
+            set => diskSize = value;
         }
+
         //Смещение FAT1 - 2 б
         private ushort fat1Offset;
         public ushort Fat1Offset
         {
-            get { return fat1Offset; }
-            private set { fat1Offset = value; }
+            get => fat1Offset;
+            set => fat1Offset = value;
         }
+
         //Смещение FAT2 - 2 б
         private ushort fat2Offset;
         public ushort Fat2Offset
         {
-            get { return fat2Offset; }
-            private set { fat2Offset = value; }
+            get => fat2Offset;
+            set => fat2Offset = value;
         }
+
         //Смещение корневого каталога - 4 б
         private uint rootOffset;
         public uint RootOffset
         {
-            get { return rootOffset; }
-            private set { rootOffset = value; }
+            get => rootOffset;
+            set => rootOffset = value;
         }
+
         //Смещение области данных - 4 б
         private uint dataOffset;
         public uint DataOffset
         {
-            get { return dataOffset; }
-            private set { dataOffset = value; }
+            get => dataOffset;
+            set => dataOffset = value;
         }
 
         public SuperBlock(Controller ctrl, Stream input)

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS.FileSystem
 {
-    class Controller
+    public class Controller
     {
         private enum Areas { SUPERBLOCK, FAT1, FAT2, ROOTDIR, DATA }
 
@@ -44,7 +44,7 @@ namespace HlwnOS.FileSystem
             ;
         }
 
-        public void createSpace(string path, string adminLogin, string adminPassword)
+        public void createSpace(string path, string adminLogin, string adminDigest)
         {
             closeSpace();
             this.path = path;
@@ -71,17 +71,14 @@ namespace HlwnOS.FileSystem
 
             //Заголовок файла с группами пользователей
             FileHeader groupsHeader = new FileHeader("groups", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            writeFile("/", groupsHeader, Encoding.ASCII.GetBytes("1\nmain\n"));
+            writeFile("/", groupsHeader, Encoding.ASCII.GetBytes(UserInfo.DEFAULT_GROUP + UsefulThings.EOLN_STR));
             //Заголовок файла с учётными записями пользователей
             FileHeader usersHeader = new FileHeader("users", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            writeFile("/", usersHeader, Encoding.ASCII.GetBytes("1\n" + adminLogin + "\n" + adminPassword + "\n1\n" + (int)UserInfo.Roles.ADMIN));
-            //users.Data = "admin\nadmin\nadmin\nguest\n\nuser";
-            /*FileHeader users2 = new FileHeader("users2", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            string kbyte = "begin56789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCend";
-            writeFile("/", users, Encoding.ASCII.GetBytes(kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte + kbyte)); //16KB
-            writeFile("/", users2, Encoding.ASCII.GetBytes(kbyte + kbyte + kbyte + kbyte + kbyte)); //5KB
-            deleteFile(users);
-            writeFile("/", users, Encoding.ASCII.GetBytes(kbyte + kbyte + kbyte + kbyte + kbyte + kbyte)); //6KB*/
+            writeFile("/", usersHeader, Encoding.ASCII.GetBytes(
+                adminLogin + UsefulThings.USERDATA_SEPARATOR +
+                adminDigest + UsefulThings.USERDATA_SEPARATOR + 
+                "1" + UsefulThings.USERDATA_SEPARATOR + 
+                (int)UserInfo.Roles.ADMIN + UsefulThings.EOLN_STR));
 
             FileHeader kek1 = new FileHeader("kek1", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
             writeFile("/", kek1, Encoding.ASCII.GetBytes(""));
@@ -118,7 +115,7 @@ namespace HlwnOS.FileSystem
         {
             if (space != null)
             {
-                space.Flush();
+                //space.Flush();
                 space.Close();
                 space = null;
             }
@@ -145,14 +142,11 @@ namespace HlwnOS.FileSystem
                 data = Encoding.ASCII.GetBytes("\0");
 
             //Запись заголовка
-            //TODO 14.11: тут использовать путь из path
             //TODO 15.11: проверить, что такого файла ещё нет
             path = UsefulThings.clearExcessSeparators(path);
             int posToWrite;
             if (path == null || path.Length == 0)
             {
-                //rootDir = Encoding.ASCII.GetString(fileHeader.toByteArray(false)) + rootDir.Remove(superBlock.RootSize - FileHeader.SIZE, FileHeader.SIZE);
-                //rootDir = fileHeader.toByteArray(false).Concat(rootDir.Take(superBlock.RootSize - FileHeader.SIZE)).ToArray();
                 posToWrite = 0;
                 while (posToWrite + FileHeader.SIZE <= superBlock.RootSize)
                 {
@@ -168,14 +162,13 @@ namespace HlwnOS.FileSystem
             }
             else
             {
-                string pathWithoutLastDir, lastDirName;// = path.Substring(path.LastIndexOf(UsefulThings.PATH_SEPARATOR) + 1);
+                string pathWithoutLastDir, lastDirName;
                 UsefulThings.detachLastFilename(path, out pathWithoutLastDir, out lastDirName);
                 FileHeader lastDirHeader = getFileHeader(pathWithoutLastDir, lastDirName);
                 if (lastDirHeader == null)
                     return 1;
                 br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
                 //В directory записывается fileHeader (входной параметр), за которым следует содержимое директории, к которой относится lastDirHeader
-                //byte[] directory = fileHeader.toByteArray(false).Concat(br.ReadBytes((int)lastDirHeader.Size).AsEnumerable()).ToArray();
                 byte[] directory = br.ReadBytes((int)lastDirHeader.Size);
                 posToWrite = 0;
                 while (posToWrite + FileHeader.SIZE <= directory.Length)
@@ -325,7 +318,6 @@ namespace HlwnOS.FileSystem
                     offset = superBlock.Fat2Offset;
                     break;
                 case Areas.ROOTDIR:
-                    //buffer = Encoding.ASCII.GetBytes(rootDir);
                     buffer = rootDir;
                     offset = superBlock.RootOffset;
                     break;
@@ -339,9 +331,11 @@ namespace HlwnOS.FileSystem
             bw.Write(buffer);
         }
 
-        public void restoreFat1()
+        public void restoreFat()
         {
-            //TODO
+            br.BaseStream.Seek(superBlock.Fat2Offset, SeekOrigin.Begin);
+            fat.fromByteStream(br.BaseStream);
+            writeArea(Areas.FAT1);
         }
 
         private FileHeader getFileHeader(string path, string filename, string extension = "")
@@ -358,6 +352,7 @@ namespace HlwnOS.FileSystem
             int nextDir = 0;
             FileHeader fh = new FileHeader();
             bool success = true; //становится false каждый раз, когда начинается проход по очередной директории; становится true, если во время прохода найден следующий заголовок
+            bool stillWithinCluster, stillHeadersInFile; 
             
             //Цикл по директориям пути
             while (success && nextDir < dirs.Length)
@@ -374,10 +369,9 @@ namespace HlwnOS.FileSystem
                     {
                         fh.fromByteStream(br.BaseStream);
                         success = fh.Name.Equals(dirs[nextDir]) && (fh.Flags & (byte)FileHeader.FlagsList.FL_DIRECTORY) > 0;
-                        //Пока не успех И позиция в пределах текущего блока И считано меньше байт, чем в файле директории
-                        //TODO 16.11: добавить проверку считанного заголовка на пустое имя (полезно при чтении корневого каталога)
-                        //            переписать длинное логическое выражение коротким выражением с переменными
-                    } while (!success && br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize && clustersPassed * superBlock.ClusterSize + br.BaseStream.Position - currClusterOffset < currDirSize);
+                        stillWithinCluster = br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize;
+                        stillHeadersInFile = fh.Name[0] != '\0';
+                    } while (!success && stillWithinCluster && stillHeadersInFile);
                     currCluster = fat.Table[currCluster];
                     ++clustersPassed;
                 }
@@ -399,10 +393,10 @@ namespace HlwnOS.FileSystem
                     do
                     {
                         fh.fromByteStream(br.BaseStream);
-                        success = fh.Name.Equals(filename) && fh.Extension.Equals(extension);//Успех ли, если найденный файл - каталог? Пока закомментировано - да. && (fh.Flags & (byte)FileHeader.FlagsList.FL_DIRECTORY) == 0;
-                        //Пока не успех И позиция в пределах текущего блока И считано меньше байт, чем в файле директории
-                    } while (!success && br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize && clustersPassed * superBlock.ClusterSize + br.BaseStream.Position - currClusterOffset < currDirSize);
-                    //} while (!success && br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize);
+                        success = fh.Name.Equals(filename) && fh.Extension.Equals(extension); //Успех ли, если найденный файл - каталог? Пока закомментировано - да. && (fh.Flags & (byte)FileHeader.FlagsList.FL_DIRECTORY) == 0;
+                        stillWithinCluster = br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize;
+                        stillHeadersInFile = fh.Name[0] != '\0';
+                    } while (!success && stillWithinCluster && stillHeadersInFile);
                     currCluster = fat.Table[currCluster];
                     ++clustersPassed;
                 }
@@ -418,6 +412,23 @@ namespace HlwnOS.FileSystem
                 //Файл не найден
                 return null;
             }
+        }
+
+        public byte[] readFile(string path, string filename, string extension = "")
+        {
+            return readFile(getFileHeader(path, filename, extension));
+        }
+
+        public byte[] readFile(FileHeader fh)
+        {
+            //TODO 17.11: читать файлы, разбитые на блоки
+            br.BaseStream.Seek(fh.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
+            return br.ReadBytes((int)fh.Size);
+        }
+
+        ~Controller()
+        {
+            closeSpace();
         }
     }
 }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS.FileSystem
 {
-    interface IConvertableToBytes
+    interface IConvertibleToBytes
     {
         byte[] toByteArray(bool expandToCluster);
     }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS.FileSystem
 {
-    interface IConvertableFromBytes
+    interface IConvertibleFromBytes
     {
         void fromByteArray(byte[] buffer);
         void fromByteStream(Stream input);
