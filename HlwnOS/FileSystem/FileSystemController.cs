@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS.FileSystem
 {
-    public class Controller
+    public class FileSystemController
     {
         private enum Areas { SUPERBLOCK, FAT1, FAT2, ROOTDIR, DATA }
 
@@ -39,7 +39,7 @@ namespace HlwnOS.FileSystem
             set { rootDir = value; }
         }
 
-        public Controller()
+        public FileSystemController()
         {
             ;
         }
@@ -426,7 +426,7 @@ namespace HlwnOS.FileSystem
             return br.ReadBytes((int)fh.Size);
         }
 
-        ~Controller()
+        ~FileSystemController()
         {
             closeSpace();
         }

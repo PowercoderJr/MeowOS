@@ -27,83 +27,79 @@ namespace HlwnOS
         {
             InitializeComponent();
         }
-
-        //TODO 18.11: разобраться с повторным кодом open и create
-        //            обработать исключения
-        //            игнорировать регистр логина
-        private void openClick(object sender, RoutedEventArgs e)
+        
+        private void authorize(string login, string password, bool createNew, ContentControl statusControl)
         {
-            statusLabel.Visibility = Visibility.Hidden;
-            OpenFileDialog dialog = new OpenFileDialog();
+            statusControl.Visibility = Visibility.Hidden;
+            FileDialog dialog = createNew ? (FileDialog)new SaveFileDialog() : (FileDialog)new OpenFileDialog();
             dialog.DefaultExt = "hfs";
             dialog.Filter = "Hlwn disk (*.hfs)|*.hfs";
+            UserInfo userInfo = null;
             if (dialog.ShowDialog() == true)
             {
-                Controller ctrl = new Controller();
+                FileSystemController fsctrl = new FileSystemController();
+                SHA1 sha = SHA1.Create();
+                string digest = Encoding.ASCII.GetString(sha.ComputeHash(Encoding.ASCII.GetBytes(password)));
+                //Замена управляющих символов
+                digest = digest.Replace('|', 'x');
+                digest = digest.Replace('\r', 's');
+                digest = digest.Replace('\n', 'f');
+                bool success;
+
                 try
                 {
-                    ctrl.openSpace(dialog.FileName);
-                    byte[] users = ctrl.readFile("/", "users", "sys");
-                    bool accessed = false;
-                    string[] user = { "", "", "", "" }; //0 = login, 1 = digest, 2 = gid, 3 = role
-                    SHA1 sha = SHA1.Create();
-                    int uid = 0;
-                    while (!accessed && users.Length > 0)
+                    if (createNew)
                     {
-                        ++uid;
-                        user = Encoding.ASCII.GetString(users.Take(Array.IndexOf(users, UsefulThings.EOLN_BYTES[0])).ToArray()).Split(UsefulThings.USERDATA_SEPARATOR);
-                        accessed = user[0].Equals(loginEdit.Text) && user[1].Equals(Encoding.ASCII.GetString(sha.ComputeHash(Encoding.ASCII.GetBytes(passEdit.Password))));
-                        users = users.Skip(Array.IndexOf(users, UsefulThings.EOLN_BYTES.Last()) + 1).ToArray();
-                    }
-
-                    if (accessed)
-                    {
-                        byte[] groups = ctrl.readFile("/", "groups", "sys");
-                        int gid = int.Parse(user[2]);
-                        string group = "";
-                        for (int i = 1; i < gid && groups.Length > 0; ++i)
-                            groups = groups.Skip(Array.IndexOf(groups, UsefulThings.EOLN_BYTES.Last())).ToArray();
-                        UserInfo userInfo = new UserInfo(uid, user[0], int.Parse(user[2]), group, (UserInfo.Roles)int.Parse(user[3]));
-                        Session.userInfo = userInfo;
-                        MainWindow mw = new MainWindow(dialog.FileName);
-                        Close();
-                        mw.Show();
+                        //Создать
+                        //TODO 15.11: запрашивать параметры создаваемого диска?
+                        ushort clusterSize = FileSystemController.FACTOR * 4; //Блок = 4 КБ
+                        ushort rootSize = (ushort)(clusterSize * 10); //Корневой каталог = 10 блоков
+                        uint diskSize = 1 * FileSystemController.FACTOR * FileSystemController.FACTOR; //Раздел = 50 МБ (или 1 МБ для тестов)
+                        fsctrl.SuperBlock = new SuperBlock(fsctrl, "HlwnFS", clusterSize, rootSize, diskSize);
+                        fsctrl.Fat = new FAT(fsctrl, (int)(diskSize / clusterSize));
+                        fsctrl.RootDir = Encoding.ASCII.GetBytes(new String('\0', rootSize));
+                        fsctrl.createSpace(dialog.FileName, login, digest);
+                        userInfo = new UserInfo(1, login, 1, UserInfo.DEFAULT_GROUP, UserInfo.Roles.ADMIN);
+                        success = true;
                     }
                     else
                     {
-                        statusLabel.Content = "Доступ не разрешён";
-                        statusLabel.Visibility = Visibility.Visible;
+                        //Открыть
+                        fsctrl.openSpace(dialog.FileName);
+                        byte[] users = fsctrl.readFile("/", "users", "sys");
+                        string[] user = { "","","","" }; //0 = login, 1 = digest, 2 = gid, 3 = role
+                        int uid = 0;
+                        success = false;
+                        while (!success && users.Length > 0)
+                        {
+                            ++uid;
+                            user = UsefulThings.readLine(users).Split(UsefulThings.USERDATA_SEPARATOR.ToString().ToArray(), StringSplitOptions.None);
+
+                            /*while (user.Length > 4) //Если дайджест "порвался"
+                            {
+                                user[1] = user[1] + UsefulThings.USERDATA_SEPARATOR + user[2];
+                                for (int i = 3; i < user.Length; ++i)
+                                    user[i - 1] = user[i];
+                                user = user.Take(user.Length - 1).ToArray();
+                            }*/
+
+                            success = user[0].ToLower().Equals(login.ToLower()) && user[1].Equals(digest);
+                            users = UsefulThings.skipLine(users);
+                        }
+                        if (success)
+                        {
+                            byte[] groups = fsctrl.readFile("/", "groups", "sys");
+                            int gid = int.Parse(user[2]);
+                            for (int i = 1; i < gid && groups.Length > 0; ++i)
+                                groups = UsefulThings.skipLine(groups);
+
+                            //Может ли быть пользователь без группы?
+                            if (groups.Length > 0)
+                                userInfo = new UserInfo(uid, user[0], int.Parse(user[2]), UsefulThings.readLine(groups), (UserInfo.Roles)int.Parse(user[3]));
+                            else
+                                success = false;
+                        }
                     }
-                }
-                catch
-                {
-                    ctrl.closeSpace();
-                }
-            }
-        }
-
-        private void createClick(object sender, RoutedEventArgs e)
-        {
-            //TODO 15.11: запрашивать параметры создаваемого диска?
-            statusLabel.Visibility = Visibility.Hidden;
-            SaveFileDialog dialog = new SaveFileDialog();
-            dialog.DefaultExt = "hfs";
-            dialog.Filter = "Hlwn disk (*.hfs)|*.hfs";
-            if (dialog.ShowDialog() == true)
-            {
-                Controller ctrl = new Controller();
-                ushort clusterSize = Controller.FACTOR * 4; //Блок = 4 КБ
-                ushort rootSize = (ushort)(clusterSize * 10); //Корневой каталог = 10 блоков
-                uint diskSize = 1 * Controller.FACTOR * Controller.FACTOR; //Раздел = 50 МБ (или 1 МБ для тестов)
-                ctrl.SuperBlock = new SuperBlock(ctrl, "HlwnFS", clusterSize, rootSize, diskSize);
-                ctrl.Fat = new FAT(ctrl, (int)(diskSize / clusterSize));
-                ctrl.RootDir = Encoding.ASCII.GetBytes(new String('\0', rootSize));
-
-                SHA1 sha = SHA1.Create();
-                bool success = true;
-                try
-                {
-                    ctrl.createSpace(dialog.FileName, loginEdit.Text, Encoding.ASCII.GetString(sha.ComputeHash(Encoding.ASCII.GetBytes(passEdit.Password))));
                 }
                 catch
                 {
@@ -111,23 +107,38 @@ namespace HlwnOS
                 }
                 finally
                 {
-                    ctrl.closeSpace();
+                    fsctrl.closeSpace();
                 }
 
                 if (success)
                 {
-                    UserInfo userInfo = new UserInfo(1, loginEdit.Text, 1, UserInfo.DEFAULT_GROUP, UserInfo.Roles.ADMIN);
                     Session.userInfo = userInfo;
-                    MainWindow mw = new MainWindow(dialog.FileName);
+                    MainWindow mw = new MainWindow(dialog.FileName, userInfo.Role);
                     Close();
                     mw.Show();
                 }
+                else
+                {
+                    statusControl.Content = "Доступ не разрешён";
+                    statusControl.Visibility = Visibility.Visible;
+                }
             }
+        }
+        
+        private void openClick(object sender, RoutedEventArgs e)
+        {
+            authorize(loginEdit.Text, passEdit.Password, false, statusLabel);
+        }
+
+        private void createClick(object sender, RoutedEventArgs e)
+        {
+            authorize(loginEdit.Text, passEdit.Password, true, statusLabel);
         }
 
         private void loginEdit_TextChanged(object sender, TextChangedEventArgs e)
         {
             UsefulThings.controlLettersAndDigits(sender as TextBox);
+            openBtn.IsEnabled = createBtn.IsEnabled = loginEdit.Text.Length > 0;
         }
     }
 }

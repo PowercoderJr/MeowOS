@@ -8,9 +8,9 @@ using System.IO;
 
 namespace HlwnOS
 {
-    class UserInfo
+    public class UserInfo
     {
-        public enum Roles { ADMIN, USER, GUEST };
+        public enum Roles { ADMIN, USER };
         public const string DEFAULT_GROUP = "main";
 
         private int uid;

@@ -22,35 +22,41 @@ namespace HlwnOS
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Controller ctrl;
+        private FileSystemController fsctrl;
+        UserInfo.Roles role;
         
-        public MainWindow(string path)
+        public MainWindow(string path, UserInfo.Roles role)
         {
             InitializeComponent();
             try
             {
-                ctrl.openSpace(path);
+                fsctrl = new FileSystemController();
+                fsctrl.openSpace(path);
             }
             catch
             {
                 //TODO
             }
+
+            this.role = role;
+            //TODO 18.11: менять функционал для админа/пользователя
         }
 
         private void printSpace()
         {
-            Console.WriteLine(ctrl.SuperBlock.ToString() + '\n');
-            /*fm.SuperBlock.fromByteArray(fm.SuperBlock.toByteArray(false));
-            Console.WriteLine(fm.SuperBlock.ToString() + '\n');*/
-
-            Console.WriteLine(ctrl.Fat.ToString() + '\n');
-            /*fm.Fat.fromByteArray(fm.Fat.toByteArray(false));
-            Console.WriteLine(fm.Fat.ToString() + '\n');*/
-
+            Console.WriteLine(fsctrl.SuperBlock.ToString() + '\n');
+            Console.WriteLine(fsctrl.Fat.ToString() + '\n');
             FileHeader test = new FileHeader("testing", "chk", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
             Console.WriteLine(test.ToString() + '\n');
-            /*test.fromByteArray(test.toByteArray(false));
-            Console.WriteLine(test.ToString() + '\n');*/
+        }
+
+        private void logout(object sender, RoutedEventArgs e)
+        {
+            fsctrl.closeSpace();
+            Session.clear();
+            AuthWindow aw = new AuthWindow();
+            Close();
+            aw.Show();
         }
     }
 }

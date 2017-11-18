@@ -78,7 +78,7 @@
     <Compile Include="FileSystem\FAT.cs" />
     <Compile Include="FileSystem\FileHeader.cs" />
     <Compile Include="FileSystem\File.cs" />
-    <Compile Include="FileSystem\Controller.cs" />
+    <Compile Include="FileSystem\FileSystemController.cs" />
     <Compile Include="Common\IConvertibleFromBytes.cs" />
     <Compile Include="Common\IConvertibleToBytes.cs" />
     <Compile Include="FileSystem\SuperBlock.cs" />

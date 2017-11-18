@@ -12,8 +12,8 @@
         <Label Content="Пароль:" HorizontalAlignment="Left" Margin="10,67,0,0" VerticalAlignment="Top" FontSize="14"/>
         <PasswordBox Name="passEdit"  Margin="10,96,10,0" VerticalAlignment="Top" FontSize="14"/>
         <Label Name="statusLabel" HorizontalAlignment="Center" Margin="0,254,0,0" VerticalAlignment="Top" Foreground="#FFAA0000" Visibility="Hidden"/>
-        <Button Name="openBtn" Content="Войти в существующую систему" Margin="10,140,10,0" VerticalAlignment="Top" Click="openClick" Height="40" FontSize="14"/>
+        <Button Name="openBtn" Content="Войти в существующую систему" Margin="10,140,10,0" VerticalAlignment="Top" Click="openClick" Height="40" FontSize="14" IsEnabled="False"/>
         <Label Content="или" HorizontalAlignment="Center" Margin="132,180,132,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" FontSize="14" Width="40"/>
-        <Button Name="createBtn" Content="Создать новую систему" Margin="10,209,10,0" VerticalAlignment="Top" Click="createClick" Height="40" FontSize="14"/>
+        <Button Name="createBtn" Content="Создать новую систему" Margin="10,209,10,0" VerticalAlignment="Top" Click="createClick" Height="40" FontSize="14" IsEnabled="False"/>
     </Grid>
 </Window>

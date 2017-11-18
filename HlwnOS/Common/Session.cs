@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace HlwnOS
 {
-    static class Session
+    public static class Session
     {
         public static UserInfo userInfo;
 

@@ -77,21 +77,21 @@ namespace HlwnOS.FileSystem
             set => dataOffset = value;
         }
 
-        public SuperBlock(Controller ctrl, Stream input)
+        public SuperBlock(FileSystemController fsctrl, Stream input)
         {
-            this.ctrl = ctrl;
+            this.fsctrl = fsctrl;
             fromByteStream(input);
         }
 
-        public SuperBlock(Controller ctrl, byte[] src)
+        public SuperBlock(FileSystemController fsctrl, byte[] src)
         {
-            this.ctrl = ctrl;
+            this.fsctrl = fsctrl;
             fromByteArray(src);
         }
 
-        public SuperBlock(Controller ctrl, string fsType, ushort clusterSize, ushort rootSize, uint diskSize)
+        public SuperBlock(FileSystemController fsctrl, string fsType, ushort clusterSize, ushort rootSize, uint diskSize)
         {
-            this.ctrl = ctrl;
+            this.fsctrl = fsctrl;
             FsType = fsType;
             ClusterSize = clusterSize;
             RootSize = rootSize;

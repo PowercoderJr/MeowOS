@@ -26,24 +26,24 @@ namespace HlwnOS.FileSystem
             get { return tableSize; }
         }
 
-        public FAT(Controller ctrl, int tableSize, Stream input)
+        public FAT(FileSystemController fsctrl, int tableSize, Stream input)
         {
-            this.ctrl = ctrl;
+            this.fsctrl = fsctrl;
             this.tableSize = tableSize;
             table = new ushort[this.tableSize];
             fromByteStream(input);
         }
 
-        public FAT(Controller ctrl, int tableSize)
+        public FAT(FileSystemController fsctrl, int tableSize)
         {
-            this.ctrl = ctrl;
+            this.fsctrl = fsctrl;
             this.tableSize = tableSize;
             table = new ushort[this.tableSize];
-            uint systemArea = ctrl.SuperBlock.RootOffset / ctrl.SuperBlock.ClusterSize;
+            uint systemArea = fsctrl.SuperBlock.RootOffset / fsctrl.SuperBlock.ClusterSize;
             uint i;
             for (i = 0; i < systemArea; ++i)
                 table[i] = CL_SYSTEM;
-            uint rootdirArea = (ctrl.SuperBlock.DataOffset - ctrl.SuperBlock.RootOffset) / ctrl.SuperBlock.ClusterSize;
+            uint rootdirArea = (fsctrl.SuperBlock.DataOffset - fsctrl.SuperBlock.RootOffset) / fsctrl.SuperBlock.ClusterSize;
             for (i = systemArea; i < systemArea + rootdirArea; ++i)
                 table[i] = (ushort)(i + 1);
             table[i - 1] = CL_EOF;
@@ -51,7 +51,7 @@ namespace HlwnOS.FileSystem
         
         public override byte[] toByteArray(bool expandToCluster)
         {
-            byte[] buffer = new byte[expandToCluster ? ctrl.SuperBlock.Fat2Offset - ctrl.SuperBlock.Fat1Offset : tableSize * ELEM_SIZE];
+            byte[] buffer = new byte[expandToCluster ? fsctrl.SuperBlock.Fat2Offset - fsctrl.SuperBlock.Fat1Offset : tableSize * ELEM_SIZE];
             Buffer.BlockCopy(table, 0, buffer, 0, tableSize * ELEM_SIZE);
             return buffer;
         }

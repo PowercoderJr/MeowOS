@@ -8,6 +8,9 @@
         Title="MainWindow" Height="500" Width="750">
     <Grid>
         <Menu HorizontalAlignment="Left" Height="25" VerticalAlignment="Top" Width="742">
+            <MenuItem Header="Система">
+                <MenuItem Header="Выйти из системы" Click="logout"/>
+            </MenuItem>
             <MenuItem Header="Файловая система"/>
             <MenuItem Header="Администрирование">
                 <MenuItem Header="Управлять пользователями"/>

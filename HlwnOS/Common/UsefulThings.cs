@@ -81,5 +81,15 @@ namespace HlwnOS
             if (!tb.Text.Equals(text))
                 tb.SelectionStart = ss;
         }
+
+        public static string readLine(byte[] data)
+        {
+            return Encoding.ASCII.GetString(data.Take(Array.IndexOf(data, EOLN_BYTES.First())).ToArray());
+        }
+
+        public static byte[] skipLine(byte[] data)
+        {
+            return data.Skip(Array.IndexOf(data, EOLN_BYTES.Last()) + 1).ToArray();
+        }
     }
 }
