@@ -6,16 +6,31 @@
         xmlns:local="clr-namespace:HlwnOS"
         mc:Ignorable="d"
         Title="MainWindow" Height="500" Width="750">
-    <Grid>
-        <Menu HorizontalAlignment="Left" Height="25" VerticalAlignment="Top" Width="742">
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <Menu Height="25" VerticalAlignment="Top" HorizontalAlignment="Stretch">
             <MenuItem Header="Система">
+                <MenuItem Header="Менеджер пользователей"/>
+                <MenuItem Header="Менеджер групп пользователей"/>
+                <Separator/>
                 <MenuItem Header="Выйти из системы" Click="logout"/>
             </MenuItem>
-            <MenuItem Header="Файловая система"/>
-            <MenuItem Header="Администрирование">
-                <MenuItem Header="Управлять пользователями"/>
-                <MenuItem Header="Управлять группами пользователей"/>
+            <MenuItem Header="Файл">
+                <MenuItem Header="Открыть"/>
+                <MenuItem Header="Переименовать"/>
+                <MenuItem Header="Удалить"/>
+                <Separator/>
+                <MenuItem Header="Копировать"/>
+                <MenuItem Header="Вырезать"/>
+                <MenuItem Header="Вставить"/>
+                <Separator/>
+                <MenuItem Header="Свойства"/>
+            </MenuItem>
+            <MenuItem Header="Проводник">
+                <CheckBox Content="Показывать скрытые файлы"/>
             </MenuItem>
         </Menu>
+        <Image HorizontalAlignment="Left" Height="40" Margin="0,25,0,0" VerticalAlignment="Top" Width="40" Source="pack://siteoforigin:,,,/Resources/back.png"/>
+        <TextBox Height="25" Margin="45,30,10,0" TextWrapping="Wrap" Text="/" VerticalAlignment="Top" HorizontalContentAlignment="Stretch"/>
+        <WrapPanel Name="wrapPanel" Margin="0,65,0,0"/>
     </Grid>
 </Window>

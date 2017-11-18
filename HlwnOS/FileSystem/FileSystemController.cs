@@ -338,7 +338,7 @@ namespace HlwnOS.FileSystem
             writeArea(Areas.FAT1);
         }
 
-        private FileHeader getFileHeader(string path, string filename, string extension = "")
+        public FileHeader getFileHeader(string path, string filename, string extension = "")
         {
             //TODO SOMETHING?
             filename = UsefulThings.setStringLength(filename, FileHeader.NAME_MAX_LENGTH);
