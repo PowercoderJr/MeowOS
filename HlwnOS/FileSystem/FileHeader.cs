@@ -57,6 +57,10 @@ namespace HlwnOS.FileSystem
             get => flags;
             set => flags = value;
         }
+        public bool isReadonly => (Flags & (byte)FlagsList.FL_READONLY) > 0;
+        public bool isHidden =>(Flags & (byte)FlagsList.FL_HIDDEN) > 0;
+        public bool isSystem => (Flags & (byte)FlagsList.FL_SYSTEM) > 0;
+        public bool isDirectory =>(Flags & (byte)FlagsList.FL_DIRECTORY) > 0;
 
         //ID пользователя - 2 б
         private ushort uid;
@@ -108,6 +112,7 @@ namespace HlwnOS.FileSystem
             fromByteStream(input);
         }
 
+
         public FileHeader(string name, string extension, byte flags, ushort uid, ushort gid)
         {
             Name = name;
@@ -132,7 +137,7 @@ namespace HlwnOS.FileSystem
         {
             return (ushort)((time.Hour << 11) + (time.Minute << 5) + time.Second / 2);
         }
-
+        
         public byte[] toByteArray(bool expandToCluster)
         {
             ArrayList buffer = new ArrayList(SIZE);

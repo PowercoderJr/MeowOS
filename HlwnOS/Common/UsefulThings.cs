@@ -41,6 +41,15 @@ namespace HlwnOS
             return output;
         }
 
+        public static string truncateZeros(string input)
+        {
+            int indexOfZero = input.IndexOf('\0');
+            if (indexOfZero < 0)
+                return input;
+            else
+                return input.Substring(0, indexOfZero);
+        }
+
         public static string clearExcessSeparators(string path)
         {
             if (path == null)

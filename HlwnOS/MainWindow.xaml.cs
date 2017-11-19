@@ -23,8 +23,12 @@ namespace HlwnOS
     public partial class MainWindow : Window
     {
         private FileSystemController fsctrl;
-        UserInfo.Roles role;
+        private UserInfo.Roles role;
         
+        static MainWindow()
+        {
+        }
+
         public MainWindow(string path, UserInfo.Roles role)
         {
             InitializeComponent();
@@ -32,6 +36,7 @@ namespace HlwnOS
             {
                 fsctrl = new FileSystemController();
                 fsctrl.openSpace(path);
+                openDirectory(fsctrl.CurrDir);
             }
             catch
             {
@@ -40,23 +45,64 @@ namespace HlwnOS
 
             this.role = role;
             //TODO 18.11: менять функционал для админа/пользователя
-
-            wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/users.sys")));
-            wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/groups.sys")));
-            wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/kek1")));
         }
 
-        private void openFolder()
+        private void openDirectory(string path)
         {
+            wrapPanel.Children.Clear();
+            path = UsefulThings.clearExcessSeparators(path);
 
+            try
+            {
+                byte[] dir = fsctrl.readFile(path);
+                FileHeader fh;
+                while (dir.Length > 0)
+                {
+                    fh = new FileHeader();
+                    fh.fromByteArray(dir);
+                    if (fh.Name.First() != UsefulThings.DELETED_MARK)
+                    {
+                        if (!fh.isHidden || fh.isHidden && showHiddenChb.IsChecked.Value)
+                        {
+                            FileView fv = new FileView(fh);
+                            fv.MouseDoubleClick += new MouseButtonEventHandler(onFileViewDoubleClick);
+                            wrapPanel.Children.Add(fv);
+                        }
+                    }
+                    dir = dir.Skip(FileHeader.SIZE).ToArray();
+                }
+                fsctrl.CurrDir = path;
+                addressEdit.Text = fsctrl.CurrDir;
+                if (fsctrl.CurrDir == "/")
+                    backImg.IsEnabled = false;
+                else
+                    backImg.IsEnabled = true;
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.Message, "Ошибка");
+                openDirectory(fsctrl.CurrDir);
+            }
         }
 
-        private void printSpace()
+        private void onFileViewDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            Console.WriteLine(fsctrl.SuperBlock.ToString() + '\n');
-            Console.WriteLine(fsctrl.Fat.ToString() + '\n');
-            FileHeader test = new FileHeader("testing", "chk", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            Console.WriteLine(test.ToString() + '\n');
+            FileView senderFV = (sender as FileView);
+            if (senderFV.FileHeader.isDirectory)
+            {
+                openDirectory(fsctrl.CurrDir + "/" + UsefulThings.truncateZeros(senderFV.FileHeader.Name));
+            }
+            else
+            {
+                //TODO
+            }
+        }
+
+        private void onBackLMBUp(object sender, MouseButtonEventArgs e)
+        {
+            string newPath, tmp;
+            UsefulThings.detachLastFilename(fsctrl.CurrDir, out newPath, out tmp);
+            openDirectory(newPath);
         }
 
         private void logout(object sender, RoutedEventArgs e)
@@ -66,6 +112,15 @@ namespace HlwnOS
             AuthWindow aw = new AuthWindow();
             Close();
             aw.Show();
+        }
+
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                openDirectory(addressEdit.Text);
+                addressEdit.SelectionStart = addressEdit.Text.Length;
+            }
         }
     }
 }

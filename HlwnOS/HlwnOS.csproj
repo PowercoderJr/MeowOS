@@ -40,6 +40,7 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -61,6 +62,7 @@
     <Compile Include="AuthWindow.xaml.cs">
       <DependentUpon>AuthWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="AutoGreyableImage.cs" />
     <Compile Include="Common\UserInfo.cs" />
     <Compile Include="Common\Session.cs" />
     <Page Include="AuthWindow.xaml">
@@ -80,9 +82,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="FileSystem\AbstractElement.cs" />
+    <Compile Include="FileSystem\Exceptions\ForbiddenOperationException.cs" />
+    <Compile Include="FileSystem\Exceptions\InvalidPathException.cs" />
+    <Compile Include="FileSystem\Exceptions\DiskOutOfSpaceException.cs" />
+    <Compile Include="FileSystem\Exceptions\RootdirOutOfSpaceException.cs" />
     <Compile Include="FileSystem\FAT.cs" />
     <Compile Include="FileSystem\FileHeader.cs" />
-    <Compile Include="FileSystem\File.cs" />
     <Compile Include="FileSystem\FileSystemController.cs" />
     <Compile Include="Common\IConvertibleFromBytes.cs" />
     <Compile Include="Common\IConvertibleToBytes.cs" />

@@ -24,16 +24,16 @@ namespace HlwnOS.FileSystem
         private static readonly Brush selectionBrush = new SolidColorBrush(Color.FromArgb(150, 50, 50, 200));
         public static FileView selection;
 
-        private bool isDirectory;
-        //private Delegate openFileDelegate;
+        private FileHeader fh;
+        public FileHeader FileHeader => fh;
 
-        public FileView(FileHeader fh/*, Delegate openFileDelegate*/)
+        public FileView(FileHeader fh)
         {
+            this.fh = fh;
             InitializeComponent();
-            isDirectory = (fh.Flags & (byte)FileHeader.FlagsList.FL_DIRECTORY) > 0;
             string name = fh.Name.Substring(0, fh.Name.IndexOf('\0') < 0 ? fh.Name.Length : fh.Name.IndexOf('\0'));
             string extension = fh.Extension.Substring(0, fh.Extension.IndexOf('\0') < 0 ? fh.Extension.Length : fh.Extension.IndexOf('\0'));
-            if (isDirectory)
+            if (fh.isDirectory)
             {
                 iconImg.Source = folderIcon;
                 nameLabel.Content = name;
@@ -44,11 +44,11 @@ namespace HlwnOS.FileSystem
                 nameLabel.Content = name + '.' + extension;
             }
 
-            if ((fh.Flags & (byte)FileHeader.FlagsList.FL_HIDDEN) > 0)
+            if (fh.isHidden)
                 iconImg.Opacity = 0.25;
         }
 
-        private void onMouseDown(object sender, MouseButtonEventArgs e)
+        private void onLMBDown(object sender, MouseButtonEventArgs e)
         {
             if (selection != null)
                 selection.panel.Background = Brushes.Transparent;

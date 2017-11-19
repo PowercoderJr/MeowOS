@@ -1,4 +1,5 @@
 ﻿using HlwnOS.FileSystem;
+using HlwnOS.FileSystem.Exceptions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -38,16 +39,24 @@ namespace HlwnOS.FileSystem
             set { rootDir = value; }
         }
 
+
+        private string currDir;
+        public string CurrDir
+        {
+            get => currDir;
+            set => currDir = value.Length > 0 ? value : "/";
+        }
+
         public FileSystemController()
         {
-            ;
+            CurrDir = "";
         }
 
         public void createSpace(string path, string adminLogin, string adminDigest)
         {
             closeSpace();
             this.path = path;
-            space = System.IO.File.Open(path, FileMode.Create, FileAccess.ReadWrite); //TODO 14.11: предупреждать, если файл уже существует
+            space = System.IO.File.Open(path, FileMode.Create, FileAccess.ReadWrite);
             bw = new BinaryWriter(space);
             br = new BinaryReader(space);
 
@@ -79,8 +88,12 @@ namespace HlwnOS.FileSystem
                 "1" + UsefulThings.USERDATA_SEPARATOR + 
                 (int)UserInfo.Roles.ADMIN + UsefulThings.EOLN_STR));
 
+            FileHeader justFile = new FileHeader("justFile", "txt", 0, 1, 1);
+            writeFile("/", justFile, Encoding.ASCII.GetBytes(""));
             FileHeader kek1 = new FileHeader("kek1", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
             writeFile("/", kek1, Encoding.ASCII.GetBytes(""));
+            FileHeader kek1Hidden = new FileHeader("kek1hidden", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY | FileHeader.FlagsList.FL_HIDDEN), 1, 1);
+            writeFile("/", kek1Hidden, Encoding.ASCII.GetBytes(""));
             FileHeader kek2 = new FileHeader("kek2", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
             writeFile("/kek1/", kek2, Encoding.ASCII.GetBytes(""));
             FileHeader kek3 = new FileHeader("kek3", "aza", 0, 1, 1);
@@ -136,8 +149,7 @@ namespace HlwnOS.FileSystem
         /// <param name="path">Путь к директории, куда следует записать файл</param>
         /// <param name="fileHeader">Заголовок файла</param>
         /// <param name="data">Содержимое файла</param>
-        /// <returns>0, если операция прошла успешно</returns>
-        public int writeFile(string path, FileHeader fileHeader, byte[] data)
+        public void writeFile(string path, FileHeader fileHeader, byte[] data)
         {
             writeArea(Areas.FAT2);
             fileHeader.FirstCluster = fat.getFreeClusterIndex();
@@ -160,7 +172,7 @@ namespace HlwnOS.FileSystem
                         posToWrite += FileHeader.SIZE;
                 }
                 if (posToWrite + FileHeader.SIZE > superBlock.RootSize)
-                    return 2; //Нет места в корневом каталоге
+                    throw new RootdirOutOfSpaceException();
                 rootDir = rootDir.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(rootDir.Skip(posToWrite + FileHeader.SIZE)).ToArray();
                 writeArea(Areas.ROOTDIR);
             }
@@ -170,7 +182,7 @@ namespace HlwnOS.FileSystem
                 UsefulThings.detachLastFilename(path, out pathWithoutLastDir, out lastDirName);
                 FileHeader lastDirHeader = getFileHeader(path);
                 if (lastDirHeader == null)
-                    return 1;
+                    throw new InvalidPathException();
                 br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
                 //В directory записывается fileHeader (входной параметр), за которым следует содержимое директории, к которой относится lastDirHeader
                 byte[] directory = br.ReadBytes((int)lastDirHeader.Size);
@@ -225,26 +237,24 @@ namespace HlwnOS.FileSystem
                 {
                     for (i = 0; i < usedClusters.Count; ++i)
                         fat.Table[usedClusters[i]] = FAT.CL_FREE;
-                    return 1;
+                    throw new DiskOutOfSpaceException();
                 }
             }
             for (i = 0; i < usedClusters.Count - 1; ++i)
                 fat.Table[usedClusters[i]] = usedClusters[i + 1];
             fat.Table[usedClusters.Last()] = FAT.CL_EOF;
             writeArea(Areas.FAT1);
-            return 0;
         }
 
         /// <summary>Удаляет файл из указанной директории</summary>
         /// <param name="path">Путь к директории, где расположен файл</param>
         /// <param name="fileHeader">Заголовок файла</param>
         /// <param name="deleteHeader">Нужно ли удалять заголовок из директории</param>
-        /// <returns>0, если операция прошла успешно</returns>
-        public int deleteFile(string path, FileHeader fileHeader, bool deleteHeader = true)
+        public void deleteFile(string path, FileHeader fileHeader, bool deleteHeader = true)
         {
             int currCluster = fileHeader.FirstCluster;
             if (currCluster < superBlock.DataOffset / superBlock.ClusterSize)
-                return 1; //Попытка обнулить системные блоки или блоки корневого каталога
+                throw new ForbiddenOperationException();
 
             if (deleteHeader)
             {
@@ -265,7 +275,7 @@ namespace HlwnOS.FileSystem
                         success = fh.Name.Equals(fileHeader.Name) && fh.Extension.Equals(fileHeader.Extension);
                     } while (!success && offset < superBlock.RootSize && fh.Name[0] != '\0');
                     if (!success)
-                        return 2; //Файл не найден
+                        throw new InvalidPathException();
                     rootDir[offset - FileHeader.SIZE] = (byte)UsefulThings.DELETED_MARK;
                     writeArea(Areas.ROOTDIR);
                 }
@@ -273,7 +283,7 @@ namespace HlwnOS.FileSystem
                 {
                     FileHeader parentDir = getFileHeader(path);
                     if (parentDir == null)
-                        return 2; //Файл не найден
+                        throw new InvalidPathException();
                     int dirClustersPassed = 0, currDirCluster = parentDir.FirstCluster, currDirClusterOffset;
                     //Цикл по блокам файла
                     while (!success && currDirCluster != FAT.CL_EOF)
@@ -291,7 +301,7 @@ namespace HlwnOS.FileSystem
                         ++dirClustersPassed;
                     }
                     if (!success)
-                        return 2; //Файл не найден
+                        throw new InvalidPathException();
                     bw.Seek(-FileHeader.SIZE, SeekOrigin.Current);
                     bw.Write(UsefulThings.DELETED_MARK);
                 }
@@ -308,7 +318,6 @@ namespace HlwnOS.FileSystem
             }
             fat.Table[currCluster] = FAT.CL_FREE;
             writeArea(Areas.FAT1);
-            return 0;
         }
 
         private void writeArea(Areas area)
@@ -377,7 +386,7 @@ namespace HlwnOS.FileSystem
             int nextDir = 0;
             FileHeader fh = new FileHeader();
             bool success = true; //становится false каждый раз, когда начинается проход по очередной директории; становится true, если во время прохода найден следующий заголовок
-            bool stillWithinCluster, stillHeadersInFile; 
+            bool stillWithinCluster = false, stillHeadersInFile = false;
             
             //Цикл по директориям пути
             while (success && nextDir < dirs.Length)
@@ -393,7 +402,7 @@ namespace HlwnOS.FileSystem
                     do
                     {
                         fh.fromByteStream(br.BaseStream);
-                        success = fh.Name.Equals(dirs[nextDir]) && (fh.Flags & (byte)FileHeader.FlagsList.FL_DIRECTORY) > 0;
+                        success = fh.Name.Equals(dirs[nextDir]) && fh.isDirectory;
                         stillWithinCluster = br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize;
                         stillHeadersInFile = fh.Name[0] != '\0';
                     } while (!success && stillWithinCluster && stillHeadersInFile);
@@ -418,7 +427,7 @@ namespace HlwnOS.FileSystem
                     do
                     {
                         fh.fromByteStream(br.BaseStream);
-                        success = fh.Name.Equals(filename) && fh.Extension.Equals(extension); //Успех ли, если найденный файл - каталог? Пока закомментировано - да. && (fh.Flags & (byte)FileHeader.FlagsList.FL_DIRECTORY) == 0;
+                        success = fh.Name.Equals(filename) && fh.Extension.Equals(extension); //Успех ли, если найденный файл - каталог? Пока закомментировано - да. && !fh.isDirectory;
                         stillWithinCluster = br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize;
                         stillHeadersInFile = fh.Name[0] != '\0';
                     } while (!success && stillWithinCluster && stillHeadersInFile);
@@ -427,7 +436,7 @@ namespace HlwnOS.FileSystem
                 }
             }
 
-            if (success)
+            if (success && stillWithinCluster && stillHeadersInFile)
             {
                 //Файл найден
                 return fh;
@@ -444,7 +453,15 @@ namespace HlwnOS.FileSystem
         /// <returns>Содержимое файла</returns>
         public byte[] readFile(string path)
         {
-            return readFile(getFileHeader(path));
+            if (UsefulThings.clearExcessSeparators(path).Length == 0)
+                return rootDir.Take(getRootdirFactSize()).ToArray();
+            else
+            {
+                FileHeader fh = getFileHeader(path);
+                if (fh == null)
+                    throw new InvalidPathException();
+                return readFile(fh);
+            }
         }
 
         /// <summary>Возвращает содержимое файла, к которому относится указанный заголовок</summary>
@@ -455,7 +472,7 @@ namespace HlwnOS.FileSystem
             //TODO 17.11: читать файлы, разбитые на блоки
             byte[] result = new byte[0];
             int currCluster = fh.FirstCluster, toRead = (int)fh.Size, toReadOnThisStep;
-            while (currCluster != FAT.CL_EOF)
+            while (currCluster != FAT.CL_EOF && toRead > 0)
             {
                 toReadOnThisStep = Math.Min(superBlock.ClusterSize, toRead);
                 br.BaseStream.Seek(currCluster * superBlock.ClusterSize, SeekOrigin.Begin);
@@ -464,6 +481,14 @@ namespace HlwnOS.FileSystem
                 toRead -= toReadOnThisStep;
             }
             return result;
+        }
+
+        private int getRootdirFactSize()
+        {
+            int size = 0;
+            while (rootDir[size] != '\0')
+                size += FileHeader.SIZE;
+            return size;
         }
 
         ~FileSystemController()

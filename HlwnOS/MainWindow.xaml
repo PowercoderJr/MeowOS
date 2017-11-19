@@ -24,13 +24,18 @@
                 <MenuItem Header="Вставить"/>
                 <Separator/>
                 <MenuItem Header="Свойства"/>
+                <Separator/>
+                <MenuItem Header="Загрузить из ОС..."/>
+                <MenuItem Header="Выгрузить в ОС..."/>
             </MenuItem>
             <MenuItem Header="Проводник">
-                <CheckBox Content="Показывать скрытые файлы"/>
+                <CheckBox Content="Показывать скрытые файлы" Name="showHiddenChb" IsChecked="True"/>
             </MenuItem>
         </Menu>
-        <Image HorizontalAlignment="Left" Height="40" Margin="0,25,0,0" VerticalAlignment="Top" Width="40" Source="pack://siteoforigin:,,,/Resources/back.png"/>
-        <TextBox Height="25" Margin="45,30,10,0" TextWrapping="Wrap" Text="/" VerticalAlignment="Top" HorizontalContentAlignment="Stretch"/>
-        <WrapPanel Name="wrapPanel" Margin="0,65,0,0"/>
+        <local:AutoGreyableImage x:Name="backImg" HorizontalAlignment="Left" Height="40" Margin="0,25,0,0" VerticalAlignment="Top" Width="40" MouseLeftButtonUp="onBackLMBUp" Source="pack://siteoforigin:,,,/Resources/back.png" Cursor="Hand"/>
+        <TextBox Name="addressEdit" Height="25" Margin="45,30,10,0" TextWrapping="Wrap" Text="/" VerticalAlignment="Top" HorizontalContentAlignment="Stretch" KeyDown="TextBox_KeyDown"/>
+        <ScrollViewer Margin="0,65,0,0" HorizontalContentAlignment="Stretch">
+            <WrapPanel Name="wrapPanel"/>
+        </ScrollViewer>
     </Grid>
 </Window>
