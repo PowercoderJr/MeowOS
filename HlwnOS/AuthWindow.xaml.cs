@@ -66,7 +66,7 @@ namespace HlwnOS
                     {
                         //Открыть
                         fsctrl.openSpace(dialog.FileName);
-                        byte[] users = fsctrl.readFile("/", "users", "sys");
+                        byte[] users = fsctrl.readFile("/users.sys");
                         string[] user = { "","","","" }; //0 = login, 1 = digest, 2 = gid, 3 = role
                         int uid = 0;
                         success = false;
@@ -88,7 +88,7 @@ namespace HlwnOS
                         }
                         if (success)
                         {
-                            byte[] groups = fsctrl.readFile("/", "groups", "sys");
+                            byte[] groups = fsctrl.readFile("/groups.sys");
                             int gid = int.Parse(user[2]);
                             for (int i = 1; i < gid && groups.Length > 0; ++i)
                                 groups = UsefulThings.skipLine(groups);

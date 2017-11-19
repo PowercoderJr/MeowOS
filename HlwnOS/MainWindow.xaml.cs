@@ -41,9 +41,9 @@ namespace HlwnOS
             this.role = role;
             //TODO 18.11: менять функционал для админа/пользователя
 
-            wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/", "users", "sys")));
-            wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/", "groups", "sys")));
-            wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/", "kek1")));
+            wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/users.sys")));
+            wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/groups.sys")));
+            wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/kek1")));
         }
 
         private void openFolder()

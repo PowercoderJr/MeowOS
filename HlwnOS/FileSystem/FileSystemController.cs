@@ -14,7 +14,6 @@ namespace HlwnOS.FileSystem
         private enum Areas { SUPERBLOCK, FAT1, FAT2, ROOTDIR, DATA }
 
         public const ushort FACTOR = 1024;
-        //public const ushort CLUSTER_SIZE = FACTOR * 4;
 
         private string path;
         private FileStream space = null;
@@ -132,7 +131,12 @@ namespace HlwnOS.FileSystem
                 br = null;
             }
         }
-        
+
+        /// <summary>Записывает файл в указанную директорию</summary>
+        /// <param name="path">Путь к директории, куда следует записать файл</param>
+        /// <param name="fileHeader">Заголовок файла</param>
+        /// <param name="data">Содержимое файла</param>
+        /// <returns>0, если операция прошла успешно</returns>
         public int writeFile(string path, FileHeader fileHeader, byte[] data)
         {
             writeArea(Areas.FAT2);
@@ -164,7 +168,7 @@ namespace HlwnOS.FileSystem
             {
                 string pathWithoutLastDir, lastDirName;
                 UsefulThings.detachLastFilename(path, out pathWithoutLastDir, out lastDirName);
-                FileHeader lastDirHeader = getFileHeader(pathWithoutLastDir, lastDirName);
+                FileHeader lastDirHeader = getFileHeader(path);
                 if (lastDirHeader == null)
                     return 1;
                 br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
@@ -231,6 +235,11 @@ namespace HlwnOS.FileSystem
             return 0;
         }
 
+        /// <summary>Удаляет файл из указанной директории</summary>
+        /// <param name="path">Путь к директории, где расположен файл</param>
+        /// <param name="fileHeader">Заголовок файла</param>
+        /// <param name="deleteHeader">Нужно ли удалять заголовок из директории</param>
+        /// <returns>0, если операция прошла успешно</returns>
         public int deleteFile(string path, FileHeader fileHeader, bool deleteHeader = true)
         {
             int currCluster = fileHeader.FirstCluster;
@@ -241,8 +250,8 @@ namespace HlwnOS.FileSystem
             {
                 //Удаление записи из родительской директории
                 path = UsefulThings.clearExcessSeparators(path);
-                string pathWithoutLast, last;
-                UsefulThings.detachLastFilename(path, out pathWithoutLast, out last);
+                //string pathWithoutLast, last;
+                //UsefulThings.detachLastFilename(path, out pathWithoutLast, out last);
                 FileHeader fh = new FileHeader();
                 int offset;
                 bool success = false;
@@ -262,7 +271,7 @@ namespace HlwnOS.FileSystem
                 }
                 else
                 {
-                    FileHeader parentDir = getFileHeader(pathWithoutLast, last);
+                    FileHeader parentDir = getFileHeader(path);
                     if (parentDir == null)
                         return 2; //Файл не найден
                     int dirClustersPassed = 0, currDirCluster = parentDir.FirstCluster, currDirClusterOffset;
@@ -337,9 +346,26 @@ namespace HlwnOS.FileSystem
             writeArea(Areas.FAT1);
         }
 
-        public FileHeader getFileHeader(string path, string filename, string extension = "")
+        /// <summary>Возвращает заголовок файла, расположенного по указанному пути</summary>
+        /// <param name="path">Полный путь к файлу</param>
+        /// <returns>Заголовок файла</returns>
+        public FileHeader getFileHeader(string path)
         {
-            //TODO SOMETHING?
+            string filename, extension;
+            UsefulThings.detachLastFilename(path, out path, out filename);
+            int indexOfDot = filename.IndexOf('.');
+            if (indexOfDot < 0)
+            {
+                extension = "";
+            }
+            else
+            {
+                extension = filename.Substring(indexOfDot + 1);
+                filename = filename.Substring(0, indexOfDot);
+            }
+            if (filename.Length > FileHeader.NAME_MAX_LENGTH || extension.Length > FileHeader.EXTENSION_MAX_LENGTH)
+                return null; //Таких файлов не может существовать
+
             filename = UsefulThings.setStringLength(filename, FileHeader.NAME_MAX_LENGTH);
             extension = UsefulThings.setStringLength(extension, FileHeader.EXTENSION_MAX_LENGTH);
 
@@ -413,11 +439,17 @@ namespace HlwnOS.FileSystem
             }
         }
 
-        public byte[] readFile(string path, string filename, string extension = "")
+        /// <summary>Возвращает содержимое файла, расположенного по указанному пути</summary>
+        /// <param name="path">Полный путь к файлу</param>
+        /// <returns>Содержимое файла</returns>
+        public byte[] readFile(string path)
         {
-            return readFile(getFileHeader(path, filename, extension));
+            return readFile(getFileHeader(path));
         }
 
+        /// <summary>Возвращает содержимое файла, к которому относится указанный заголовок</summary>
+        /// <param name="fh">Заголовок файла</param>
+        /// <returns>Содержимое файла</returns>
         public byte[] readFile(FileHeader fh)
         {
             //TODO 17.11: читать файлы, разбитые на блоки
