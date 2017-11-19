@@ -46,6 +46,11 @@ namespace HlwnOS
             wrapPanel.Children.Add(new FileView(fsctrl.getFileHeader("/", "kek1")));
         }
 
+        private void openFolder()
+        {
+
+        }
+
         private void printSpace()
         {
             Console.WriteLine(fsctrl.SuperBlock.ToString() + '\n');

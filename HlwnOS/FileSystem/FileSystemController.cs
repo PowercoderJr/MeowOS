@@ -14,7 +14,7 @@ namespace HlwnOS.FileSystem
         private enum Areas { SUPERBLOCK, FAT1, FAT2, ROOTDIR, DATA }
 
         public const ushort FACTOR = 1024;
-        public const ushort CLUSTER_SIZE = FACTOR * 4;
+        //public const ushort CLUSTER_SIZE = FACTOR * 4;
 
         private string path;
         private FileStream space = null;
@@ -202,7 +202,7 @@ namespace HlwnOS.FileSystem
             }
 
             //Запись данных
-            int toWrite = data.Length, i = 0, offset, toWriteOnThisStep;
+            int toWrite = data.Length, toWriteOnThisStep, i = 0;
             ushort currCluster;
             List<ushort> usedClusters = new List<ushort>();
             while (toWrite > 0)
@@ -213,8 +213,7 @@ namespace HlwnOS.FileSystem
                     usedClusters.Add(currCluster);
                     fat.Table[currCluster] = FAT.CL_WRITING;
                     toWriteOnThisStep = Math.Min(superBlock.ClusterSize, toWrite);
-                    offset = currCluster * superBlock.ClusterSize;
-                    bw.Seek(offset, SeekOrigin.Begin);
+                    bw.Seek(currCluster * superBlock.ClusterSize, SeekOrigin.Begin);
                     bw.Write(data, superBlock.ClusterSize * i++, toWriteOnThisStep);
                     toWrite -= toWriteOnThisStep;
                 }
@@ -345,7 +344,7 @@ namespace HlwnOS.FileSystem
             extension = UsefulThings.setStringLength(extension, FileHeader.EXTENSION_MAX_LENGTH);
 
             uint currCluster = superBlock.RootOffset / superBlock.ClusterSize, currClusterOffset;
-            int clustersPassed, currDirSize = superBlock.RootSize;
+            int clustersPassed/*?*/, currDirSize = superBlock.RootSize;
             string[] dirs = path.Split(UsefulThings.PATH_SEPARATOR.ToString().ToArray(), StringSplitOptions.RemoveEmptyEntries);
             for (int i = 0; i < dirs.Length; ++i)
                 dirs[i] = UsefulThings.setStringLength(dirs[i], FileHeader.NAME_MAX_LENGTH);
@@ -422,8 +421,17 @@ namespace HlwnOS.FileSystem
         public byte[] readFile(FileHeader fh)
         {
             //TODO 17.11: читать файлы, разбитые на блоки
-            br.BaseStream.Seek(fh.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
-            return br.ReadBytes((int)fh.Size);
+            byte[] result = new byte[0];
+            int currCluster = fh.FirstCluster, toRead = (int)fh.Size, toReadOnThisStep;
+            while (currCluster != FAT.CL_EOF)
+            {
+                toReadOnThisStep = Math.Min(superBlock.ClusterSize, toRead);
+                br.BaseStream.Seek(currCluster * superBlock.ClusterSize, SeekOrigin.Begin);
+                result = result.Concat(br.ReadBytes(toReadOnThisStep)).ToArray();
+                currCluster = fat.Table[currCluster];
+                toRead -= toReadOnThisStep;
+            }
+            return result;
         }
 
         ~FileSystemController()
