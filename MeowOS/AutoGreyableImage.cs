@@ -15,7 +15,7 @@ namespace MeowOS
         /// <summary>
         /// Initializes a new instance of the <see cref="AutoGreyableImage"/> class.
         /// </summary>
-        public AutoGreyableImage()
+        static AutoGreyableImage()
         {
             // Override the metadata of the IsEnabled property.
             IsEnabledProperty.OverrideMetadata(typeof(AutoGreyableImage), new FrameworkPropertyMetadata(true, new PropertyChangedCallback(OnAutoGreyScaleImageIsEnabledPropertyChanged)));

@@ -63,6 +63,7 @@ namespace MeowOS
                         {
                             FileView fv = new FileView(fh);
                             fv.MouseDoubleClick += new MouseButtonEventHandler(onFileViewDoubleClick);
+                            //fv.nameEdit.LostFocus += ;
                             wrapPanel.Children.Add(fv);
                         }
                     }
@@ -118,6 +119,17 @@ namespace MeowOS
                 openDirectory(addressEdit.Text);
                 addressEdit.SelectionStart = addressEdit.Text.Length;
             }
+        }
+
+        private void showHiddenChb_Changed(object sender, RoutedEventArgs e)
+        {
+            openDirectory(fsctrl.CurrDir);
+        }
+
+        private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
+        {
+            if (FileView.selection != null)
+                onFileViewDoubleClick(FileView.selection, null);
         }
     }
 }

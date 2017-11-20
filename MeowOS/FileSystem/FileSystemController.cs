@@ -198,21 +198,7 @@ namespace MeowOS.FileSystem
                     directory = directory.Concat(fileHeader.toByteArray(false)).ToArray();
                 else
                     directory = directory.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(directory.Skip(posToWrite + FileHeader.SIZE)).ToArray();
-
-                /*int dirOldClSize = (int)Math.Ceiling((double)(directory.Length - FileHeader.SIZE) / superBlock.ClusterSize);
-                int dirNewClSize = (int)Math.Ceiling((double)(directory.Length) / superBlock.ClusterSize);
-                if (dirNewClSize > dirOldClSize)
-                {
-                    //Перезапись требует больше блоков
-                    deleteFile(pathWithoutLastDir, lastDirHeader);
-                    writeFile(pathWithoutLastDir, lastDirHeader, directory);
-                }
-                else
-                {
-                    //Перезаписать можно на старое место
-                    lastDirHeader.Size += FileHeader.SIZE;
-                    bw.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
-                }*/
+                
                 deleteFile(pathWithoutLastDir, lastDirHeader);
                 writeFile(pathWithoutLastDir, lastDirHeader, directory);
             }
@@ -263,48 +249,14 @@ namespace MeowOS.FileSystem
                 //string pathWithoutLast, last;
                 //UsefulThings.detachLastFilename(path, out pathWithoutLast, out last);
                 FileHeader fh = new FileHeader();
-                int offset;
-                bool success = false;
-                if (path.Length == 0)
-                {
-                    offset = 0;
-                    do
-                    {
-                        fh.fromByteArray(rootDir.Skip(offset).ToArray());
-                        offset += FileHeader.SIZE;
-                        success = fh.Name.Equals(fileHeader.Name) && fh.Extension.Equals(fileHeader.Extension);
-                    } while (!success && offset < superBlock.RootSize && fh.Name[0] != '\0');
-                    if (!success)
-                        throw new InvalidPathException();
-                    rootDir[offset - FileHeader.SIZE] = (byte)UsefulThings.DELETED_MARK;
-                    writeArea(Areas.ROOTDIR);
-                }
-                else
-                {
-                    FileHeader parentDir = getFileHeader(path);
-                    if (parentDir == null)
-                        throw new InvalidPathException();
-                    int dirClustersPassed = 0, currDirCluster = parentDir.FirstCluster, currDirClusterOffset;
-                    //Цикл по блокам файла
-                    while (!success && currDirCluster != FAT.CL_EOF)
-                    {
-                        currDirClusterOffset = currDirCluster * superBlock.ClusterSize;
-                        br.BaseStream.Seek(currDirClusterOffset, SeekOrigin.Begin);
-                        //Цикл по записям блока
-                        do
-                        {
-                            fh.fromByteStream(br.BaseStream);
-                            success = fh.Name.Equals(fileHeader.Name) && fh.Extension.Equals(fileHeader.Extension);
-                            //Пока не успех И позиция в пределах текущего блока И считано меньше байт, чем в файле директории
-                        } while (!success && br.BaseStream.Position - currDirClusterOffset < superBlock.ClusterSize && dirClustersPassed * superBlock.ClusterSize + br.BaseStream.Position - currDirClusterOffset < parentDir.Size);
-                        currDirCluster = fat.Table[currDirCluster];
-                        ++dirClustersPassed;
-                    }
-                    if (!success)
-                        throw new InvalidPathException();
-                    bw.Seek(-FileHeader.SIZE, SeekOrigin.Current);
-                    bw.Write(UsefulThings.DELETED_MARK);
-                }
+                string fullpath = path + '/' + (fileHeader.isDirectory ? fileHeader.Name : (fileHeader.Name + '.' + fileHeader.Extension));
+                int offset = (int)getFileHeaderOffset(fullpath);
+                if (offset < 0)
+                    throw new InvalidPathException();
+                bw.Seek(offset, SeekOrigin.Begin);
+                bw.Write(UsefulThings.DELETED_MARK);
+                if (offset >= superBlock.RootOffset && offset < superBlock.DataOffset)
+                    rootDir[offset - superBlock.RootOffset] = (byte)UsefulThings.DELETED_MARK;
             }
 
             //Помечание блоков как свободных
@@ -360,6 +312,21 @@ namespace MeowOS.FileSystem
         /// <returns>Заголовок файла</returns>
         public FileHeader getFileHeader(string path)
         {
+            long offset = getFileHeaderOffset(path);
+            br.BaseStream.Seek(offset, SeekOrigin.Begin);
+            FileHeader fh = new FileHeader();
+            fh.fromByteStream(br.BaseStream);
+            return fh;
+        }
+
+        /// <summary>Возвращает смещение заголовка файла, расположенного по указанному пути</summary>
+        /// <param name="path">Полный путь к файлу</param>
+        /// <returns>Смещение заголовка файла</returns>
+        public long getFileHeaderOffset(string path)
+        {
+            if (UsefulThings.clearExcessSeparators(path).Equals(""))
+                return superBlock.RootOffset;
+
             string filename, extension;
             UsefulThings.detachLastFilename(path, out path, out filename);
             int indexOfDot = filename.IndexOf('.');
@@ -373,13 +340,13 @@ namespace MeowOS.FileSystem
                 filename = filename.Substring(0, indexOfDot);
             }
             if (filename.Length > FileHeader.NAME_MAX_LENGTH || extension.Length > FileHeader.EXTENSION_MAX_LENGTH)
-                return null; //Таких файлов не может существовать
+                return -1; //Таких файлов не может существовать
 
             filename = UsefulThings.setStringLength(filename, FileHeader.NAME_MAX_LENGTH);
             extension = UsefulThings.setStringLength(extension, FileHeader.EXTENSION_MAX_LENGTH);
 
             uint currCluster = superBlock.RootOffset / superBlock.ClusterSize, currClusterOffset;
-            int clustersPassed/*?*/, currDirSize = superBlock.RootSize;
+            int currDirSize = superBlock.RootSize;
             string[] dirs = path.Split(UsefulThings.PATH_SEPARATOR.ToString().ToArray(), StringSplitOptions.RemoveEmptyEntries);
             for (int i = 0; i < dirs.Length; ++i)
                 dirs[i] = UsefulThings.setStringLength(dirs[i], FileHeader.NAME_MAX_LENGTH);
@@ -387,12 +354,11 @@ namespace MeowOS.FileSystem
             FileHeader fh = new FileHeader();
             bool success = true; //становится false каждый раз, когда начинается проход по очередной директории; становится true, если во время прохода найден следующий заголовок
             bool stillWithinCluster = false, stillHeadersInFile = false;
-            
+
             //Цикл по директориям пути
             while (success && nextDir < dirs.Length)
             {
                 success = false;
-                clustersPassed = 0;
                 //Цикл по блокам файла
                 while (!success && currCluster != FAT.CL_EOF)
                 {
@@ -407,7 +373,6 @@ namespace MeowOS.FileSystem
                         stillHeadersInFile = fh.Name[0] != '\0';
                     } while (!success && stillWithinCluster && stillHeadersInFile);
                     currCluster = fat.Table[currCluster];
-                    ++clustersPassed;
                 }
                 currCluster = fh.FirstCluster;
                 ++nextDir;
@@ -417,7 +382,6 @@ namespace MeowOS.FileSystem
             {
                 //Добрались до нужной директории, ищем сам файл
                 success = false;
-                clustersPassed = 0;
                 //Цикл по блокам файла
                 while (!success && currCluster != FAT.CL_EOF)
                 {
@@ -432,20 +396,15 @@ namespace MeowOS.FileSystem
                         stillHeadersInFile = fh.Name[0] != '\0';
                     } while (!success && stillWithinCluster && stillHeadersInFile);
                     currCluster = fat.Table[currCluster];
-                    ++clustersPassed;
                 }
             }
 
             if (success && stillWithinCluster && stillHeadersInFile)
-            {
                 //Файл найден
-                return fh;
-            }
+                return br.BaseStream.Position - FileHeader.SIZE;
             else
-            {
                 //Файл не найден
-                return null;
-            }
+                return -1;
         }
 
         /// <summary>Возвращает содержимое файла, расположенного по указанному пути</summary>
