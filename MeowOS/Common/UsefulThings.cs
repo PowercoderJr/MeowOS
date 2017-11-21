@@ -15,7 +15,7 @@ namespace MeowOS
         public const char USERDATA_SEPARATOR = '|';
         public const char DELETED_MARK = '$';
         public const string EOLN_STR = "\r\n";
-        public static readonly byte[] EOLN_BYTES = Encoding.ASCII.GetBytes(EOLN_STR);
+        public static readonly byte[] EOLN_BYTES = Encoding.GetEncoding(1251).GetBytes(EOLN_STR);
 
         public static string setStringLength(string input, int maxLength, char placeholder = '\0', Alignments alignment = Alignments.LEFT)
         {
@@ -88,12 +88,12 @@ namespace MeowOS
             tb.Text = string.Concat(tb.Text.Where(char.IsLetterOrDigit));
 
             if (!tb.Text.Equals(text))
-                tb.SelectionStart = ss;
+                tb.SelectionStart = Math.Max(0, ss);
         }
 
         public static string readLine(byte[] data)
         {
-            return Encoding.ASCII.GetString(data.Take(Array.IndexOf(data, EOLN_BYTES.First())).ToArray());
+            return Encoding.GetEncoding(1251).GetString(data.Take(Array.IndexOf(data, EOLN_BYTES.First())).ToArray());
         }
 
         public static byte[] skipLine(byte[] data)

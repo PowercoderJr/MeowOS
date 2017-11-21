@@ -18,14 +18,13 @@
             </MenuItem>
             <MenuItem Header="Файл">
                 <MenuItem Header="Открыть" Click="MenuItem_Open_Click"/>
-                <MenuItem Header="Переименовать"/>
                 <MenuItem Header="Удалить"/>
                 <Separator/>
                 <MenuItem Header="Копировать"/>
                 <MenuItem Header="Вырезать"/>
                 <MenuItem Header="Вставить"/>
                 <Separator/>
-                <MenuItem Header="Свойства"/>
+                <MenuItem Header="Свойства" Click="MenuItem_Properties_Click"/>
                 <Separator/>
                 <MenuItem Header="Загрузить из ОС..."/>
                 <MenuItem Header="Выгрузить в ОС..."/>

@@ -21,18 +21,22 @@ namespace MeowOS.FileSystem
         private string name;
         public string Name
         {
-            get { return name; }
-            set { name = UsefulThings.setStringLength(value, NAME_MAX_LENGTH); }
+            get => name;
+            set => name = UsefulThings.setStringLength(value, NAME_MAX_LENGTH);
         }
+        public string NameWithoutZeros => UsefulThings.truncateZeros(name);
 
         //Расширение - 3 б
         public const int EXTENSION_MAX_LENGTH = 3;
         private string extension;
         public string Extension
         {
-            get { return extension; }
-            set { extension = UsefulThings.setStringLength(value, EXTENSION_MAX_LENGTH); }
+            get => extension;
+            set => extension = UsefulThings.setStringLength(value, EXTENSION_MAX_LENGTH);
         }
+        public string ExtensionWithoutZeros => UsefulThings.truncateZeros(extension);
+
+        public string NamePlusExtension => IsDirectory ? NameWithoutZeros : NameWithoutZeros + "." + ExtensionWithoutZeros;
 
         //Размер - 4 б
         private uint size;
@@ -57,10 +61,10 @@ namespace MeowOS.FileSystem
             get => flags;
             set => flags = value;
         }
-        public bool isReadonly => (Flags & (byte)FlagsList.FL_READONLY) > 0;
-        public bool isHidden =>(Flags & (byte)FlagsList.FL_HIDDEN) > 0;
-        public bool isSystem => (Flags & (byte)FlagsList.FL_SYSTEM) > 0;
-        public bool isDirectory =>(Flags & (byte)FlagsList.FL_DIRECTORY) > 0;
+        public bool IsReadonly => (Flags & (byte)FlagsList.FL_READONLY) > 0;
+        public bool IsHidden => (Flags & (byte)FlagsList.FL_HIDDEN) > 0;
+        public bool IsSystem => (Flags & (byte)FlagsList.FL_SYSTEM) > 0;
+        public bool IsDirectory => (Flags & (byte)FlagsList.FL_DIRECTORY) > 0;
 
         //ID пользователя - 2 б
         private ushort uid;
@@ -93,6 +97,18 @@ namespace MeowOS.FileSystem
             get => chDate;
             set => chDate = value;
         }
+        public string ChDateDDMMYYYY
+        {
+            get
+            {
+                string day = ((ushort)((ushort)(chDate << 11) >> 11)).ToString();
+                if (day.Length == 1) day = "0" + day;
+                string month = ((ushort)((ushort)(chDate << 7) >> 12)).ToString();
+                if (month.Length == 1) month = "0" + month;
+                string year = ((ushort)(chDate >> 9) + 1980).ToString();
+                return day + "." + month + "." + year;
+            }
+        }
 
         //Время изменения - 2 б
         private ushort chTime;
@@ -100,6 +116,19 @@ namespace MeowOS.FileSystem
         {
             get => chTime;
             set => chTime = value;
+        }
+        public string ChTimeHHMMSS
+        {
+            get
+            {
+                string hours = ((ushort)(chTime >> 11)).ToString();
+                if (hours.Length == 1) hours = "0" + hours;
+                string minutes = ((ushort)((ushort)(chTime << 5) >> 10)).ToString();
+                if (minutes.Length == 1) minutes = "0" + minutes;
+                string seconds = ((ushort)((ushort)(chTime << 11) >> 11) * 2).ToString();
+                if (seconds.Length == 1) seconds = "0" + seconds;
+                return hours + ":" + minutes + ":" + seconds;
+            }
         }
 
         //Зарезервировано - 4 б
@@ -141,8 +170,8 @@ namespace MeowOS.FileSystem
         public byte[] toByteArray(bool expandToCluster)
         {
             ArrayList buffer = new ArrayList(SIZE);
-            buffer.AddRange(Encoding.ASCII.GetBytes(name.ToArray()));
-            buffer.AddRange(Encoding.ASCII.GetBytes(extension.ToArray()));
+            buffer.AddRange(Encoding.GetEncoding(1251).GetBytes(name.ToArray()));
+            buffer.AddRange(Encoding.GetEncoding(1251).GetBytes(extension.ToArray()));
             buffer.AddRange(BitConverter.GetBytes(size));
             buffer.AddRange(BitConverter.GetBytes(accessRights));
             buffer.Add(flags);
@@ -158,9 +187,9 @@ namespace MeowOS.FileSystem
         public void fromByteArray(byte[] buffer)
         {
             int offset = 0;
-            Name = Encoding.ASCII.GetString(buffer, offset, NAME_MAX_LENGTH);
+            Name = Encoding.GetEncoding(1251).GetString(buffer, offset, NAME_MAX_LENGTH);
             offset = NAME_MAX_LENGTH;
-            Extension = Encoding.ASCII.GetString(buffer, offset, EXTENSION_MAX_LENGTH);
+            Extension = Encoding.GetEncoding(1251).GetString(buffer, offset, EXTENSION_MAX_LENGTH);
             offset += EXTENSION_MAX_LENGTH;
             Size = BitConverter.ToUInt32(buffer, offset);
             offset += sizeof(uint);

@@ -10,6 +10,5 @@
     <StackPanel Name="panel" VerticalAlignment="Top" HorizontalAlignment="Center" Height="90" Width="90" Margin="5,5,5,5">
         <Image Name="iconImg" Stretch="Fill" Height="50" Width="50" Margin="0,10,0,0"/>
         <Label Name="nameLabel" Margin="0,5,0,0" HorizontalContentAlignment="Center" Height="25"/>
-        <TextBox Name="nameEdit" Margin="0,-10,0,0" Visibility="Hidden" Height="25"/>
     </StackPanel>
 </UserControl>

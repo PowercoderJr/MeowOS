@@ -69,6 +69,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="FileSystem\FilePropertiesWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="FileSystem\FileView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -88,6 +92,9 @@
     <Compile Include="FileSystem\Exceptions\RootdirOutOfSpaceException.cs" />
     <Compile Include="FileSystem\FAT.cs" />
     <Compile Include="FileSystem\FileHeader.cs" />
+    <Compile Include="FileSystem\FilePropertiesWindow.xaml.cs">
+      <DependentUpon>FilePropertiesWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="FileSystem\FileSystemController.cs" />
     <Compile Include="Common\IConvertibleFromBytes.cs" />
     <Compile Include="Common\IConvertibleToBytes.cs" />

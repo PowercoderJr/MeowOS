@@ -39,7 +39,7 @@ namespace MeowOS
             {
                 FileSystemController fsctrl = new FileSystemController();
                 SHA1 sha = SHA1.Create();
-                string digest = Encoding.ASCII.GetString(sha.ComputeHash(Encoding.ASCII.GetBytes(password)));
+                string digest = Encoding.GetEncoding(1251).GetString(sha.ComputeHash(Encoding.GetEncoding(1251).GetBytes(password)));
                 //Замена управляющих символов
                 digest = digest.Replace('|', 'x');
                 digest = digest.Replace('\r', 's');
@@ -57,7 +57,7 @@ namespace MeowOS
                         uint diskSize = 1 * FileSystemController.FACTOR * FileSystemController.FACTOR; //Раздел = 50 МБ (или 1 МБ для тестов)
                         fsctrl.SuperBlock = new SuperBlock(fsctrl, "MeowFS", clusterSize, rootSize, diskSize);
                         fsctrl.Fat = new FAT(fsctrl, (int)(diskSize / clusterSize));
-                        fsctrl.RootDir = Encoding.ASCII.GetBytes(new String('\0', rootSize));
+                        fsctrl.RootDir = Encoding.GetEncoding(1251).GetBytes(new String('\0', rootSize));
                         fsctrl.createSpace(dialog.FileName, login, digest);
                         userInfo = new UserInfo(1, login, 1, UserInfo.DEFAULT_GROUP, UserInfo.Roles.ADMIN);
                         success = true;

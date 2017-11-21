@@ -79,27 +79,27 @@ namespace MeowOS.FileSystem
 
             //Заголовок файла с группами пользователей
             FileHeader groupsHeader = new FileHeader("groups", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            writeFile("/", groupsHeader, Encoding.ASCII.GetBytes(UserInfo.DEFAULT_GROUP + UsefulThings.EOLN_STR));
+            writeFile("/", groupsHeader, Encoding.GetEncoding(1251).GetBytes(UserInfo.DEFAULT_GROUP + UsefulThings.EOLN_STR));
             //Заголовок файла с учётными записями пользователей
             FileHeader usersHeader = new FileHeader("users", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            writeFile("/", usersHeader, Encoding.ASCII.GetBytes(
+            writeFile("/", usersHeader, Encoding.GetEncoding(1251).GetBytes(
                 adminLogin + UsefulThings.USERDATA_SEPARATOR +
                 adminDigest + UsefulThings.USERDATA_SEPARATOR + 
                 "1" + UsefulThings.USERDATA_SEPARATOR + 
                 (int)UserInfo.Roles.ADMIN + UsefulThings.EOLN_STR));
 
             FileHeader justFile = new FileHeader("justFile", "txt", 0, 1, 1);
-            writeFile("/", justFile, Encoding.ASCII.GetBytes(""));
+            writeFile("/", justFile, Encoding.GetEncoding(1251).GetBytes(""));
             FileHeader kek1 = new FileHeader("kek1", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
-            writeFile("/", kek1, Encoding.ASCII.GetBytes(""));
+            writeFile("/", kek1, Encoding.GetEncoding(1251).GetBytes(""));
             FileHeader kek1Hidden = new FileHeader("kek1hidden", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY | FileHeader.FlagsList.FL_HIDDEN), 1, 1);
-            writeFile("/", kek1Hidden, Encoding.ASCII.GetBytes(""));
+            writeFile("/", kek1Hidden, Encoding.GetEncoding(1251).GetBytes(""));
             FileHeader kek2 = new FileHeader("kek2", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
-            writeFile("/kek1/", kek2, Encoding.ASCII.GetBytes(""));
+            writeFile("/kek1/", kek2, Encoding.GetEncoding(1251).GetBytes(""));
             FileHeader kek3 = new FileHeader("kek3", "aza", 0, 1, 1);
-            writeFile("/kek1/kek2/", kek3, Encoding.ASCII.GetBytes("Mama ama kek3.aza!"));
+            writeFile("/kek1/kek2/", kek3, Encoding.GetEncoding(1251).GetBytes("Mama ama kek3.aza!"));
             FileHeader kek4 = new FileHeader("kek4", "aza", 0, 1, 1);
-            writeFile("/kek1/kek2/", kek4, Encoding.ASCII.GetBytes("Mama ama kek4.aza!"));
+            writeFile("/kek1/kek2/", kek4, Encoding.GetEncoding(1251).GetBytes("Mama ama kek4.aza!"));
             deleteFile("/kek1/kek2/", kek3);
         }
 
@@ -119,7 +119,7 @@ namespace MeowOS.FileSystem
 
             //Корневой каталог
             br.BaseStream.Seek((int)superBlock.RootOffset, SeekOrigin.Begin);
-            //rootDir = Encoding.ASCII.GetString(br.ReadBytes(superBlock.RootSize));
+            //rootDir = Encoding.GetEncoding(1251).GetString(br.ReadBytes(superBlock.RootSize));
             rootDir = br.ReadBytes(superBlock.RootSize);
         }
 
@@ -155,7 +155,7 @@ namespace MeowOS.FileSystem
             fileHeader.FirstCluster = fat.getFreeClusterIndex();
             fileHeader.Size = (uint)data.Length;
             if (data.Length == 0)
-                data = Encoding.ASCII.GetBytes("\0");
+                data = Encoding.GetEncoding(1251).GetBytes("\0");
 
             //Запись заголовка
             //TODO 15.11: проверить, что такого файла ещё нет
@@ -238,6 +238,7 @@ namespace MeowOS.FileSystem
         /// <param name="deleteHeader">Нужно ли удалять заголовок из директории</param>
         public void deleteFile(string path, FileHeader fileHeader, bool deleteHeader = true)
         {
+            //TODO 21.11: рекурсивное удаление, если удаляется директория
             int currCluster = fileHeader.FirstCluster;
             if (currCluster < superBlock.DataOffset / superBlock.ClusterSize)
                 throw new ForbiddenOperationException();
@@ -249,7 +250,7 @@ namespace MeowOS.FileSystem
                 //string pathWithoutLast, last;
                 //UsefulThings.detachLastFilename(path, out pathWithoutLast, out last);
                 FileHeader fh = new FileHeader();
-                string fullpath = path + '/' + (fileHeader.isDirectory ? fileHeader.Name : (fileHeader.Name + '.' + fileHeader.Extension));
+                string fullpath = path + '/' + (fileHeader.IsDirectory ? fileHeader.Name : (fileHeader.Name + '.' + fileHeader.Extension));
                 int offset = (int)getFileHeaderOffset(fullpath);
                 if (offset < 0)
                     throw new InvalidPathException();
@@ -298,6 +299,23 @@ namespace MeowOS.FileSystem
             }
             bw.Seek((int)offset, SeekOrigin.Begin);
             bw.Write(buffer);
+        }
+
+        public void writeBytes(int offset, byte[] data)
+        {
+            if (offset >= superBlock.RootOffset && offset < superBlock.DataOffset)
+            {
+                int offsetInRootDir = (int)(offset - superBlock.RootOffset);
+                if (offsetInRootDir + data.Length > superBlock.RootSize)
+                    throw new RootdirOutOfSpaceException();
+                //rootDir[offset - superBlock.RootOffset] = (byte)UsefulThings.DELETED_MARK;
+                rootDir = rootDir.Take(offsetInRootDir).Concat(data).Concat(rootDir.Skip(offsetInRootDir + data.Length)).ToArray();
+            }
+            else if (offset + data.Length > superBlock.DiskSize)
+                throw new DiskOutOfSpaceException();
+
+            bw.Seek(offset, SeekOrigin.Begin);
+            bw.Write(data);
         }
 
         public void restoreFat()
@@ -368,7 +386,7 @@ namespace MeowOS.FileSystem
                     do
                     {
                         fh.fromByteStream(br.BaseStream);
-                        success = fh.Name.Equals(dirs[nextDir]) && fh.isDirectory;
+                        success = fh.Name.Equals(dirs[nextDir]) && fh.IsDirectory;
                         stillWithinCluster = br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize;
                         stillHeadersInFile = fh.Name[0] != '\0';
                     } while (!success && stillWithinCluster && stillHeadersInFile);

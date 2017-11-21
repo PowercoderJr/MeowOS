@@ -1,0 +1,51 @@
+﻿<Window x:Class="MeowOS.FileSystem.FilePropertiesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MeowOS.FileSystem"
+        mc:Ignorable="d"
+        Title="Свойства" Height="415" Width="310" ResizeMode="CanMinimize"> <!-- -10;-10 в runtime -->
+    <Grid>
+        <Label Content="Имя файла:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+        <TextBox Name="nameEdit" HorizontalAlignment="Left" Height="23" Margin="126,12,0,0" VerticalAlignment="Top" Width="158" TextChanged="nameOrExtensionChanged"/>
+        <Label Content="Расширение:" HorizontalAlignment="Left" Margin="10,36,0,0" VerticalAlignment="Top"/>
+        <TextBox Name="extensionEdit" HorizontalAlignment="Left" Height="23" Margin="126,38,0,0" VerticalAlignment="Top" Width="158" TextChanged="nameOrExtensionChanged"/>
+        <Label Content="Размер:" HorizontalAlignment="Left" Margin="10,62,0,0" VerticalAlignment="Top"/>
+        <TextBox Name="sizeEdit" HorizontalAlignment="Left" Height="23" Margin="126,64,0,0" VerticalAlignment="Top" Width="158" IsReadOnly="True" Foreground="#FF555555"/>
+        <Label Content="Дата изменения:" HorizontalAlignment="Left" Margin="10,88,0,0" VerticalAlignment="Top"/>
+        <TextBox Name="chDateEdit" HorizontalAlignment="Left" Height="23" Margin="126,90,0,0" VerticalAlignment="Top" Width="158" IsReadOnly="True" Foreground="#FF555555"/>
+        <Label Content="Время изменения:" HorizontalAlignment="Left" Margin="10,114,0,0" VerticalAlignment="Top"/>
+        <TextBox Name="chTimeEdit" HorizontalAlignment="Left" Height="23" Margin="126,116,0,0" VerticalAlignment="Top" Width="158" IsReadOnly="True" Foreground="#FF555555"/>
+        <Label Content="Атрибуты:" HorizontalAlignment="Left" Margin="10,140,0,0" VerticalAlignment="Top"/>
+        <Border Margin="126,145,10,178" BorderBrush="#FFAFB0B6" BorderThickness="1" Height="54" Width="158">
+            <Grid>
+                <CheckBox Name="flReadOnlyChb" Content="Только чтение" HorizontalAlignment="Left" Margin="2,2,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="flHiddenChb" Content="Скрытый" HorizontalAlignment="Left" Margin="2,18,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="flSystemChb" Content="Системный" HorizontalAlignment="Left" Margin="2,34,0,0" VerticalAlignment="Top"/>
+            </Grid>
+        </Border>
+        <Label Content="Права доступа:" HorizontalAlignment="Left" Margin="10,205,0,0" VerticalAlignment="Top"/>
+        <Border Margin="126,202,10,68" BorderBrush="#FFAFB0B6" BorderThickness="1" Height="107" Width="158">
+            <Grid>
+                <Label Content="U" HorizontalAlignment="Left" Margin="81,2,0,0" VerticalAlignment="Top"/>
+                <Label Content="G" HorizontalAlignment="Left" Margin="104,2,0,0" VerticalAlignment="Top"/>
+                <Label Content="O" HorizontalAlignment="Left" Margin="127,2,0,0" VerticalAlignment="Top"/>
+                <Label Content="Чтение" HorizontalAlignment="Left" Margin="32,28,0,0" VerticalAlignment="Top"/>
+                <Label Content="Запись" HorizontalAlignment="Left" Margin="33,54,0,0" VerticalAlignment="Top"/>
+                <Label Content="Выполнение" HorizontalAlignment="Left" Margin="2,77,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="urChb" HorizontalAlignment="Left" Margin="84,36,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="grChb" HorizontalAlignment="Left" Margin="107,36,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="orChb" HorizontalAlignment="Left" Margin="130,36,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="uwChb" HorizontalAlignment="Left" Margin="84,62,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="gwChb" HorizontalAlignment="Left" Margin="107,62,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="owChb" HorizontalAlignment="Left" Margin="130,62,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="uxChb" HorizontalAlignment="Left" Margin="84,85,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="gxChb" HorizontalAlignment="Left" Margin="107,85,0,0" VerticalAlignment="Top"/>
+                <CheckBox Name="oxChb" HorizontalAlignment="Left" Margin="130,85,0,0" VerticalAlignment="Top"/>
+            </Grid>
+        </Border>
+        <Button Name="okBtn" Content="OK" HorizontalAlignment="Left" Margin="10,327,0,10" VerticalAlignment="Bottom" Width="130" Height="40" Click="okBtn_Click"/>
+        <Button Name="cancelBtn" Content="Отмена" HorizontalAlignment="Right" Margin="0,327,10,10" VerticalAlignment="Bottom" Width="130" Height="40" Click="cancelBtn_Click"/>
+    </Grid>
+</Window>

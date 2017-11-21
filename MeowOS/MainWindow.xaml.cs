@@ -59,7 +59,7 @@ namespace MeowOS
                     fh.fromByteArray(dir);
                     if (fh.Name.First() != UsefulThings.DELETED_MARK)
                     {
-                        if (!fh.isHidden || fh.isHidden && showHiddenChb.IsChecked.Value)
+                        if (!fh.IsHidden || fh.IsHidden && showHiddenChb.IsChecked.Value)
                         {
                             FileView fv = new FileView(fh);
                             fv.MouseDoubleClick += new MouseButtonEventHandler(onFileViewDoubleClick);
@@ -86,9 +86,9 @@ namespace MeowOS
         private void onFileViewDoubleClick(object sender, MouseButtonEventArgs e)
         {
             FileView senderFV = (sender as FileView);
-            if (senderFV.FileHeader.isDirectory)
+            if (senderFV.FileHeader.IsDirectory)
             {
-                openDirectory(fsctrl.CurrDir + "/" + UsefulThings.truncateZeros(senderFV.FileHeader.Name));
+                openDirectory(fsctrl.CurrDir + "/" + senderFV.FileHeader.NameWithoutZeros);
             }
             else
             {
@@ -130,6 +130,20 @@ namespace MeowOS
         {
             if (FileView.selection != null)
                 onFileViewDoubleClick(FileView.selection, null);
+        }
+
+        private void MenuItem_Properties_Click(object sender, RoutedEventArgs e)
+        {
+            if (FileView.selection != null)
+            {
+                int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + FileView.selection.FileHeader.NamePlusExtension);
+                FilePropertiesWindow fpw = new FilePropertiesWindow(FileView.selection.FileHeader);
+                if (fpw.ShowDialog().Value)
+                {
+                    fsctrl.writeBytes(headerOffset, FileView.selection.FileHeader.toByteArray(false));
+                    FileView.selection.refresh();
+                }
+            }
         }
     }
 }

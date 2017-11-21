@@ -31,21 +31,7 @@ namespace MeowOS.FileSystem
         {
             this.fh = fh;
             InitializeComponent();
-            string name = fh.Name.Substring(0, fh.Name.IndexOf('\0') < 0 ? fh.Name.Length : fh.Name.IndexOf('\0'));
-            string extension = fh.Extension.Substring(0, fh.Extension.IndexOf('\0') < 0 ? fh.Extension.Length : fh.Extension.IndexOf('\0'));
-            if (fh.isDirectory)
-            {
-                iconImg.Source = folderIcon;
-                nameLabel.Content = name;
-            }
-            else
-            {
-                iconImg.Source = fileIcon;
-                nameLabel.Content = name + '.' + extension;
-            }
-
-            if (fh.isHidden)
-                iconImg.Opacity = 0.25;
+            refresh();
         }
 
         private void onLMBDown(object sender, MouseButtonEventArgs e)
@@ -54,6 +40,13 @@ namespace MeowOS.FileSystem
                 selection.panel.Background = Brushes.Transparent;
             selection = this;
             panel.Background = selectionBrush;
+        }
+
+        public void refresh()
+        {
+            iconImg.Source = fh.IsDirectory ? folderIcon : fileIcon;
+            iconImg.Opacity = fh.IsHidden ? 0.25 : 1;
+            nameLabel.Content = fh.NamePlusExtension;
         }
     }
 }
