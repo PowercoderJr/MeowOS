@@ -152,7 +152,9 @@ namespace MeowOS.FileSystem
         public void writeFile(string path, FileHeader fileHeader, byte[] data)
         {
             writeArea(Areas.FAT2);
-            fileHeader.FirstCluster = fat.getFreeClusterIndex();
+            ushort firstCluster = fat.getFreeClusterIndex();
+            fileHeader.FirstCluster = firstCluster;
+            fat.Table[firstCluster] = FAT.CL_WRITING;
             fileHeader.Size = (uint)data.Length;
             if (data.Length == 0)
                 data = Encoding.GetEncoding(1251).GetBytes("\0");
@@ -205,11 +207,11 @@ namespace MeowOS.FileSystem
 
             //Запись данных
             int toWrite = data.Length, toWriteOnThisStep, i = 0;
-            ushort currCluster;
             List<ushort> usedClusters = new List<ushort>();
+
+            ushort currCluster = firstCluster;
             while (toWrite > 0)
             {
-                currCluster = fat.getFreeClusterIndex();
                 if (currCluster < fat.TableSize)
                 {
                     usedClusters.Add(currCluster);
@@ -218,6 +220,7 @@ namespace MeowOS.FileSystem
                     bw.Seek(currCluster * superBlock.ClusterSize, SeekOrigin.Begin);
                     bw.Write(data, superBlock.ClusterSize * i++, toWriteOnThisStep);
                     toWrite -= toWriteOnThisStep;
+                    currCluster = fat.getFreeClusterIndex();
                 }
                 else
                 {

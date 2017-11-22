@@ -24,6 +24,7 @@ namespace MeowOS
     {
         private FileSystemController fsctrl;
         private UserInfo.Roles role;
+        private byte[] bufferFH, bufferData;
 
         public MainWindow(string path, UserInfo.Roles role)
         {
@@ -40,6 +41,8 @@ namespace MeowOS
             }
 
             this.role = role;
+            bufferFH = null;
+            bufferData = null;
             Title = "MeowOS - " + Session.userInfo.Login;
             //TODO 18.11: менять функционал для админа/пользователя
         }
@@ -52,25 +55,15 @@ namespace MeowOS
             try
             {
                 byte[] dir = fsctrl.readFile(path);
-                FileHeader fh;
                 while (dir.Length > 0)
                 {
-                    fh = new FileHeader();
-                    fh.fromByteArray(dir);
-                    if (fh.Name.First() != UsefulThings.DELETED_MARK)
-                    {
-                        if (!fh.IsHidden || fh.IsHidden && showHiddenChb.IsChecked.Value)
-                        {
-                            FileView fv = new FileView(fh);
-                            fv.MouseDoubleClick += new MouseButtonEventHandler(onFileViewDoubleClick);
-                            //fv.nameEdit.LostFocus += ;
-                            wrapPanel.Children.Add(fv);
-                        }
-                    }
+                    FileHeader fh = new FileHeader(dir);
+                    addFileView(fh);
                     dir = dir.Skip(FileHeader.SIZE).ToArray();
                 }
                 fsctrl.CurrDir = path;
                 addressEdit.Text = fsctrl.CurrDir;
+                FileView.selection = null;
                 if (fsctrl.CurrDir == "/")
                     backImg.IsEnabled = false;
                 else
@@ -81,6 +74,21 @@ namespace MeowOS
                 MessageBox.Show(e.Message, "Ошибка");
                 openDirectory(fsctrl.CurrDir);
             }
+        }
+
+        private FileView addFileView(FileHeader fh)
+        {
+            FileView fv = null;
+            if (fh.Name.First() != UsefulThings.DELETED_MARK) //Проверять внутри метода или каждый раз перед вызовом?
+            {
+                if (!fh.IsHidden || fh.IsHidden && showHiddenChb.IsChecked.Value)
+                {
+                    fv = new FileView(fh);
+                    fv.MouseDoubleClick += new MouseButtonEventHandler(onFileViewDoubleClick);
+                    wrapPanel.Children.Add(fv);
+                }
+            }
+            return fv;
         }
 
         private void onFileViewDoubleClick(object sender, MouseButtonEventArgs e)
@@ -125,17 +133,94 @@ namespace MeowOS
         {
             openDirectory(fsctrl.CurrDir);
         }
-
+        
+        //TODO 22.11: разобраться с повторным кодом (проверки MenuItem_..._Click)
         private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
         {
             if (FileView.selection != null)
-                onFileViewDoubleClick(FileView.selection, null);
+                openCmd();
+            else
+                MessageBox.Show("Нет выделения", "Ошибка");
+        }
+
+        private void openCmd()
+        {
+            onFileViewDoubleClick(FileView.selection, null);
+        }
+
+        private void MenuItem_Delete_Click(object sender, RoutedEventArgs e)
+        {
+            if (FileView.selection != null)
+                deleteCmd();
+            else
+                MessageBox.Show("Нет выделения", "Ошибка");
+        }
+
+        private void deleteCmd()
+        {
+            fsctrl.deleteFile(fsctrl.CurrDir, FileView.selection.FileHeader);
+            wrapPanel.Children.Remove(FileView.selection);
+            FileView.selection = null;
+        }
+
+        private void MenuItem_Copy_Click(object sender, RoutedEventArgs e)
+        {
+            if (FileView.selection != null)
+                copyCmd();
+            else
+                MessageBox.Show("Нет выделения", "Ошибка");
+        }
+
+        private void copyCmd()
+        {
+            //TODO 22.11: копировать также вложенные файлы
+            bufferFH = FileView.selection.FileHeader.toByteArray(false);
+            bufferData = fsctrl.readFile(FileView.selection.FileHeader);
+        }
+
+        private void MenuItem_Cut_Click(object sender, RoutedEventArgs e)
+        {
+            if (FileView.selection != null)
+                cutCmd();
+            else
+                MessageBox.Show("Нет выделения", "Ошибка");
+        }
+
+        private void cutCmd()
+        {
+            copyCmd();
+            deleteCmd();
+        }
+
+        private void MenuItem_Paste_Click(object sender, RoutedEventArgs e)
+        {
+            if (bufferFH != null && bufferData != null)
+                pasteCmd(sender);
+            else
+                MessageBox.Show("В буфере нет информации", "Ошибка");
+        }
+
+        private void pasteCmd(object sender)
+        {
+                FileHeader fh = new FileHeader(bufferFH);
+                fsctrl.writeFile(fsctrl.CurrDir, fh, bufferData);
+                FileView fv = addFileView(fh);
+                if (fv != null)
+                    fv.onLMBDown(sender, null);
+                bufferFH = null;
+                bufferData = null;
         }
 
         private void MenuItem_Properties_Click(object sender, RoutedEventArgs e)
         {
             if (FileView.selection != null)
-            {
+                propertiesCmd();
+            else
+                MessageBox.Show("Нет выделения", "Ошибка");
+        }
+
+        private void propertiesCmd()
+        {
                 int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + FileView.selection.FileHeader.NamePlusExtension);
                 FilePropertiesWindow fpw = new FilePropertiesWindow(FileView.selection.FileHeader);
                 if (fpw.ShowDialog().Value)
@@ -143,7 +228,6 @@ namespace MeowOS
                     fsctrl.writeBytes(headerOffset, FileView.selection.FileHeader.toByteArray(false));
                     FileView.selection.refresh();
                 }
-            }
         }
     }
 }

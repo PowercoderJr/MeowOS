@@ -141,6 +141,10 @@ namespace MeowOS.FileSystem
             fromByteStream(input);
         }
 
+        public FileHeader(byte[] input)
+        {
+            fromByteArray(input);
+        }
 
         public FileHeader(string name, string extension, byte flags, ushort uid, ushort gid)
         {

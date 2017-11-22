@@ -34,7 +34,7 @@ namespace MeowOS.FileSystem
             refresh();
         }
 
-        private void onLMBDown(object sender, MouseButtonEventArgs e)
+        public void onLMBDown(object sender, MouseButtonEventArgs e)
         {
             if (selection != null)
                 selection.panel.Background = Brushes.Transparent;

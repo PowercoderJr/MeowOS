@@ -18,11 +18,11 @@
             </MenuItem>
             <MenuItem Header="Файл">
                 <MenuItem Header="Открыть" Click="MenuItem_Open_Click"/>
-                <MenuItem Header="Удалить"/>
+                <MenuItem Header="Удалить" Click="MenuItem_Delete_Click"/>
                 <Separator/>
-                <MenuItem Header="Копировать"/>
-                <MenuItem Header="Вырезать"/>
-                <MenuItem Header="Вставить"/>
+                <MenuItem Header="Копировать" Click="MenuItem_Copy_Click"/>
+                <MenuItem Header="Вырезать" Click="MenuItem_Cut_Click"/>
+                <MenuItem Header="Вставить" Click="MenuItem_Paste_Click"/>
                 <Separator/>
                 <MenuItem Header="Свойства" Click="MenuItem_Properties_Click"/>
                 <Separator/>
