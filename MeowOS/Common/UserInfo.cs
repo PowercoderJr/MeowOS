@@ -13,18 +13,18 @@ namespace MeowOS
         public enum Roles { ADMIN, USER };
         public const string DEFAULT_GROUP = "main";
 
-        private int uid;
-        public int Uid { get { return uid; } }
+        private ushort uid;
+        public ushort Uid => uid;
         private string login;
-        public string Login { get { return login; } }
-        private int gid;
-        public int Gid { get { return gid; } }
+        public string Login => login;
+        private ushort gid;
+        public ushort Gid => gid;
         private string group;
-        public string Group { get { return group; } }
+        public string Group => group;
         private Roles role;
-        public Roles Role { get { return role; } }
+        public Roles Role => role;
 
-        public UserInfo(int uid, string login, int gid, string group, Roles role)
+        public UserInfo(ushort uid, string login, ushort gid, string group, Roles role)
         {
             this.uid = uid;
             this.login = login;

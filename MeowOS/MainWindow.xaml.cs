@@ -129,11 +129,27 @@ namespace MeowOS
             }
         }
 
-        private void showHiddenChb_Changed(object sender, RoutedEventArgs e)
+        private void MenuItem_Create_Click(object sender, RoutedEventArgs e)
         {
-            openDirectory(fsctrl.CurrDir);
+            createCmd((sender as Control) == crDirItem);
         }
-        
+
+        private void createCmd(bool isDirectory)
+        {
+            //TODO: 22.11: проверить права записи
+            FileHeader fh = new FileHeader(Session.userInfo);
+            fh.IsDirectory = isDirectory;
+            if (isDirectory)
+            {
+                fh.Name = "newdir";
+                fh.Extension = "";
+            }
+            fsctrl.writeFile(fsctrl.CurrDir, fh, null);
+            FileView fv = addFileView(fh);
+            fv.onLMBDown(fv, null);
+            propertiesCmd();
+        }
+
         //TODO 22.11: разобраться с повторным кодом (проверки MenuItem_..._Click)
         private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
         {
@@ -195,20 +211,20 @@ namespace MeowOS
         private void MenuItem_Paste_Click(object sender, RoutedEventArgs e)
         {
             if (bufferFH != null && bufferData != null)
-                pasteCmd(sender);
+                pasteCmd();
             else
                 MessageBox.Show("В буфере нет информации", "Ошибка");
         }
 
-        private void pasteCmd(object sender)
+        private void pasteCmd()
         {
-                FileHeader fh = new FileHeader(bufferFH);
-                fsctrl.writeFile(fsctrl.CurrDir, fh, bufferData);
-                FileView fv = addFileView(fh);
-                if (fv != null)
-                    fv.onLMBDown(sender, null);
-                bufferFH = null;
-                bufferData = null;
+            FileHeader fh = new FileHeader(bufferFH);
+            fsctrl.writeFile(fsctrl.CurrDir, fh, bufferData);
+            FileView fv = addFileView(fh);
+            if (fv != null)
+                fv.onLMBDown(fv, null);
+            bufferFH = null;
+            bufferData = null;
         }
 
         private void MenuItem_Properties_Click(object sender, RoutedEventArgs e)
@@ -221,13 +237,18 @@ namespace MeowOS
 
         private void propertiesCmd()
         {
-                int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + FileView.selection.FileHeader.NamePlusExtension);
-                FilePropertiesWindow fpw = new FilePropertiesWindow(FileView.selection.FileHeader);
-                if (fpw.ShowDialog().Value)
-                {
-                    fsctrl.writeBytes(headerOffset, FileView.selection.FileHeader.toByteArray(false));
-                    FileView.selection.refresh();
-                }
+            int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + FileView.selection.FileHeader.NamePlusExtension);
+            FilePropertiesWindow fpw = new FilePropertiesWindow(FileView.selection.FileHeader);
+            if (fpw.ShowDialog().Value)
+            {
+                fsctrl.writeBytes(headerOffset, FileView.selection.FileHeader.toByteArray(false));
+                FileView.selection.refresh();
+            }
+        }
+
+        private void showHiddenChb_Changed(object sender, RoutedEventArgs e)
+        {
+            openDirectory(fsctrl.CurrDir);
         }
     }
 }

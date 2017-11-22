@@ -17,6 +17,9 @@
                 <MenuItem Header="Выйти из системы" Click="logout"/>
             </MenuItem>
             <MenuItem Header="Файл">
+                <MenuItem Name="crFileItem" Header="Создать файл..." Click="MenuItem_Create_Click"/>
+                <MenuItem Name="crDirItem" Header="Создать каталог..." Click="MenuItem_Create_Click"/>
+                <Separator/>
                 <MenuItem Header="Открыть" Click="MenuItem_Open_Click"/>
                 <MenuItem Header="Удалить" Click="MenuItem_Delete_Click"/>
                 <Separator/>

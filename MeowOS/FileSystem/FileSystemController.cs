@@ -89,13 +89,13 @@ namespace MeowOS.FileSystem
                 (int)UserInfo.Roles.ADMIN + UsefulThings.EOLN_STR));
 
             FileHeader justFile = new FileHeader("justFile", "txt", 0, 1, 1);
-            writeFile("/", justFile, Encoding.GetEncoding(1251).GetBytes(""));
+            writeFile("/", justFile, null);
             FileHeader kek1 = new FileHeader("kek1", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
-            writeFile("/", kek1, Encoding.GetEncoding(1251).GetBytes(""));
+            writeFile("/", kek1, null);
             FileHeader kek1Hidden = new FileHeader("kek1hidden", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY | FileHeader.FlagsList.FL_HIDDEN), 1, 1);
-            writeFile("/", kek1Hidden, Encoding.GetEncoding(1251).GetBytes(""));
+            writeFile("/", kek1Hidden, null);
             FileHeader kek2 = new FileHeader("kek2", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
-            writeFile("/kek1/", kek2, Encoding.GetEncoding(1251).GetBytes(""));
+            writeFile("/kek1/", kek2, null);
             FileHeader kek3 = new FileHeader("kek3", "aza", 0, 1, 1);
             writeFile("/kek1/kek2/", kek3, Encoding.GetEncoding(1251).GetBytes("Mama ama kek3.aza!"));
             FileHeader kek4 = new FileHeader("kek4", "aza", 0, 1, 1);
@@ -155,8 +155,8 @@ namespace MeowOS.FileSystem
             ushort firstCluster = fat.getFreeClusterIndex();
             fileHeader.FirstCluster = firstCluster;
             fat.Table[firstCluster] = FAT.CL_WRITING;
-            fileHeader.Size = (uint)data.Length;
-            if (data.Length == 0)
+            fileHeader.Size = (uint)(data == null ? 0 : data.Length);
+            if (data == null || data.Length == 0)
                 data = Encoding.GetEncoding(1251).GetBytes("\0");
 
             //Запись заголовка

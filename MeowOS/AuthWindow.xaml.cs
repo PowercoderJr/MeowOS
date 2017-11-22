@@ -95,7 +95,7 @@ namespace MeowOS
 
                             //Может ли быть пользователь без группы?
                             if (groups.Length > 0)
-                                userInfo = new UserInfo(uid, user[0], int.Parse(user[2]), UsefulThings.readLine(groups), (UserInfo.Roles)int.Parse(user[3]));
+                                userInfo = new UserInfo((ushort)uid, user[0], (ushort)int.Parse(user[2]), UsefulThings.readLine(groups), (UserInfo.Roles)int.Parse(user[3]));
                             else
                                 success = false;
                         }

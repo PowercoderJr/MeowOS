@@ -61,10 +61,33 @@ namespace MeowOS.FileSystem
             get => flags;
             set => flags = value;
         }
-        public bool IsReadonly => (Flags & (byte)FlagsList.FL_READONLY) > 0;
-        public bool IsHidden => (Flags & (byte)FlagsList.FL_HIDDEN) > 0;
-        public bool IsSystem => (Flags & (byte)FlagsList.FL_SYSTEM) > 0;
-        public bool IsDirectory => (Flags & (byte)FlagsList.FL_DIRECTORY) > 0;
+        public bool IsReadonly
+        {
+            get => (Flags & (byte)FlagsList.FL_READONLY) > 0;
+            set => setFlag(FlagsList.FL_READONLY, value);
+        }
+        public bool IsHidden
+        {
+            get => (Flags & (byte)FlagsList.FL_HIDDEN) > 0;
+            set => setFlag(FlagsList.FL_HIDDEN, value);
+        }
+        public bool IsSystem
+        {
+            get => (Flags & (byte)FlagsList.FL_SYSTEM) > 0;
+            set => setFlag(FlagsList.FL_SYSTEM, value);
+        }
+        public bool IsDirectory
+        {
+            get => (Flags & (byte)FlagsList.FL_DIRECTORY) > 0;
+            set => setFlag(FlagsList.FL_DIRECTORY, value);
+        }
+        private void setFlag(FlagsList flag, bool value)
+        {
+            if (value)
+                Flags |= (byte)flag;
+            else
+                Flags &= (byte)~(byte)flag;
+        }
 
         //ID пользователя - 2 б
         private ushort uid;
@@ -134,18 +157,53 @@ namespace MeowOS.FileSystem
         //Зарезервировано - 4 б
         public const uint reserved = 0;
 
-        public FileHeader() { }
+        public FileHeader() {}
 
+        /// <summary>
+        /// Создаёт заголовок файла с параметрами по умолчанию от имени заданного пользователя
+        /// </summary>
+        /// <param name="userInfo">Пользователь</param>
+        public FileHeader(UserInfo userInfo)
+        {
+            Name = "newfile";
+            Extension = "ext";
+            Size = 0;
+            AccessRights = DEFAULT_RIGHTS;
+            Flags = 0;
+            Uid = userInfo.Uid;
+            Gid = userInfo.Gid;
+            FirstCluster = 0;
+            DateTime now = DateTime.Now;
+            ChDate = dateToUshort(now);
+            ChTime = timeToUshort(now);
+        }
+
+        /// <summary>
+        /// Создаёт заголовок файла на основе считанной информации 
+        /// </summary>
+        /// <param name="input">Входной поток</param>
         public FileHeader(Stream input)
         {
             fromByteStream(input);
         }
 
+        /// <summary>
+        /// Создаёт заголовок файла на основе считанной информации 
+        /// </summary>
+        /// <param name="input">Источник</param>
         public FileHeader(byte[] input)
         {
             fromByteArray(input);
         }
 
+        /// <summary>
+        /// Создаёт заголовок файла с заданными параметрами
+        /// </summary>
+        /// <param name="name">Имя файла</param>
+        /// <param name="extension">Расширение файла</param>
+        /// <param name="flags">Атрибуты</param>
+        /// <param name="uid">ID пользователя</param>
+        /// <param name="gid">ID группы пользователя</param>
         public FileHeader(string name, string extension, byte flags, ushort uid, ushort gid)
         {
             Name = name;
