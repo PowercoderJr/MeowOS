@@ -21,6 +21,7 @@ namespace MeowOS.FileSystem
             get { return fsType; }
             private set { fsType = UsefulThings.setStringLength(value, FS_TYPE_MAX_LENGTH, '\0', UsefulThings.Alignments.LEFT); }
         }
+        public string FsTypeWithoutZeros => UsefulThings.truncateZeros(fsType);
         //Размер лог. блока - 2 б
         private ushort clusterSize;
         public ushort ClusterSize

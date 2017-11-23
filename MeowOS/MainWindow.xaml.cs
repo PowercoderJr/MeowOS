@@ -111,6 +111,19 @@ namespace MeowOS
             openDirectory(newPath);
         }
 
+        private void MenuItem_UsersManager_Click(object sender, RoutedEventArgs e)
+        {
+            byte[] usersData = fsctrl.readFile("/users.sys");
+            byte[] groupsData = fsctrl.readFile("/groups.sys");
+            UsersManagerWindow umw = new UsersManagerWindow(ref usersData, ref groupsData);
+            umw.ShowDialog();
+        }
+
+        private void MenuItem_fsProperties_Click(object sender, RoutedEventArgs e)
+        {
+            new FileSystemPropertiesWindow(fsctrl.SuperBlock).ShowDialog();
+        }
+
         private void logout(object sender, RoutedEventArgs e)
         {
             fsctrl.closeSpace();

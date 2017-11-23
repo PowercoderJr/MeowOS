@@ -53,7 +53,7 @@ namespace MeowOS.FileSystem
             //Заполнение полей
             nameEdit.Text = fh.NameWithoutZeros;
             extensionEdit.Text = fh.ExtensionWithoutZeros;
-            sizeEdit.Text = fh.Size.ToString();
+            sizeEdit.Text = fh.Size.ToString() + " байт";
             chDateEdit.Text = fh.ChDateDDMMYYYY;
             chTimeEdit.Text = fh.ChTimeHHMMSS;
             for (int i = 0; i < flagsChbs.Length; ++i)
