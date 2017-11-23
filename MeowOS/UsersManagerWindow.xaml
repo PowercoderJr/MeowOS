@@ -58,22 +58,22 @@
                 <RowDefinition/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
-            <ListView Margin="10" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <ListView Name="usersListView" Margin="10" Grid.Row="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="UID" Width="50"/>
-                        <GridViewColumn Header="Логин" Width="100"/>
-                        <GridViewColumn Header="GID" Width="50"/>
-                        <GridViewColumn Header="Группа" Width="90"/>
-                        <GridViewColumn Header="Роль" Width="90"/>
+                        <GridViewColumn Header="UID" DisplayMemberBinding="{Binding Path=Uid}" Width="50"/>
+                        <GridViewColumn Header="Логин" DisplayMemberBinding="{Binding Path=Login}" Width="100"/>
+                        <GridViewColumn Header="GID" DisplayMemberBinding="{Binding Path=Gid}" Width="50"/>
+                        <GridViewColumn Header="Группа" DisplayMemberBinding="{Binding Path=Group}" Width="90"/>
+                        <GridViewColumn Header="Роль" DisplayMemberBinding="{Binding Path=Role}" Width="90"/>
                     </GridView>
                 </ListView.View>
             </ListView>
-            <ListView Margin="10" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <ListView Name="groupListView" Margin="10" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="ID" Width="50"/>
-                        <GridViewColumn Header="Название" Width="200"/>
+                        <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Path=Id}" Width="50"/>
+                        <GridViewColumn Header="Название" DisplayMemberBinding="{Binding Path=Name}" Width="200"/>
                     </GridView>
                 </ListView.View>
             </ListView>

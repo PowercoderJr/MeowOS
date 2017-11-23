@@ -115,7 +115,7 @@ namespace MeowOS
         {
             byte[] usersData = fsctrl.readFile("/users.sys");
             byte[] groupsData = fsctrl.readFile("/groups.sys");
-            UsersManagerWindow umw = new UsersManagerWindow(ref usersData, ref groupsData);
+            UsersManagerWindow umw = new UsersManagerWindow(usersData, groupsData);
             umw.ShowDialog();
         }
 

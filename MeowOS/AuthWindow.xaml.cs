@@ -65,6 +65,7 @@ namespace MeowOS
                     else
                     {
                         //Открыть
+                        //TODO 24.11: вместо UsefulThings.readLine и UsefulThings.skipLine использовать способ из UserManagerWindow? (Encoding... Split...)
                         fsctrl.openSpace(dialog.FileName);
                         byte[] users = fsctrl.readFile("/users.sys");
                         string[] user = { "","","","" }; //0 = login, 1 = digest, 2 = gid, 3 = role
@@ -74,14 +75,6 @@ namespace MeowOS
                         {
                             ++uid;
                             user = UsefulThings.readLine(users).Split(UsefulThings.USERDATA_SEPARATOR.ToString().ToArray(), StringSplitOptions.None);
-
-                            /*while (user.Length > 4) //Если дайджест "порвался"
-                            {
-                                user[1] = user[1] + UsefulThings.USERDATA_SEPARATOR + user[2];
-                                for (int i = 3; i < user.Length; ++i)
-                                    user[i - 1] = user[i];
-                                user = user.Take(user.Length - 1).ToArray();
-                            }*/
 
                             success = user[0].ToLower().Equals(login.ToLower()) && user[1].Equals(digest);
                             users = UsefulThings.skipLine(users);
