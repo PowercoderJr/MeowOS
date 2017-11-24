@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MeowOS.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,22 +20,10 @@ namespace MeowOS
     /// </summary>
     public partial class UsersManagerWindow : Window
     {
-        private class GroupInfo
-        {
-            private int id;
-            public int Id => id;
-            private string name;
-            public string Name => name;
-
-            public GroupInfo(int id, string name)
-            {
-                this.id = id;
-                this.name = name;
-            }
-        }
-
         private byte[] usersData, groupsData;
-        private string[] groups;
+        public byte[] UsersData => usersData;
+        public byte[] GroupsData => groupsData;
+        private List<string> groups, users;
 
         public UsersManagerWindow(byte[] usersData, byte[] groupsData)
         {
@@ -42,22 +31,21 @@ namespace MeowOS
             this.usersData = usersData;
             this.groupsData = groupsData;
 
-            string groupsTmp = Encoding.GetEncoding(1251).GetString(groupsData);
-            groups = groupsTmp.Split(new string[] { UsefulThings.EOLN_STR }, StringSplitOptions.RemoveEmptyEntries);
-
-            string usersTmp = Encoding.GetEncoding(1251).GetString(usersData);
-            string[] users = usersTmp.Split(new string[] { UsefulThings.EOLN_STR }, StringSplitOptions.RemoveEmptyEntries);
+            groups = new List<string>(UsefulThings.fileFromByteArrToStringArr(groupsData));
+            users = new List<string>(UsefulThings.fileFromByteArrToStringArr(usersData));
 
             string[] user = { "", "", "", "" }; //0 = login, 1 = digest, 2 = gid, 3 = role
             ushort uid, gid;
-            for (uid = 1; uid <= users.Length; ++uid)
+            for (uid = 1; uid <= users.Count; ++uid)
             {
                 user = users[uid - 1].Split(UsefulThings.USERDATA_SEPARATOR.ToString().ToArray(), StringSplitOptions.RemoveEmptyEntries);
                 gid = ushort.Parse(user[2]);
-                usersListView.Items.Add(new UserInfo(uid, user[0], gid, groups[gid - 1], (UserInfo.Roles)int.Parse(user[3])));
+                if (user[0].First() != UsefulThings.DELETED_MARK)
+                    usersListView.Items.Add(new UserInfo(uid, user[0], gid, groups[gid - 1], (UserInfo.Roles)int.Parse(user[3])));
             }
-            for (int i = 1; i <= groups.Length; ++i)
-                groupListView.Items.Add(new GroupInfo(i, groups[i - 1]));
+            for (int i = 1; i <= groups.Count; ++i)
+                if (groups[i - 1].First() != UsefulThings.DELETED_MARK)
+                    groupsListView.Items.Add(new GroupInfo(i, groups[i - 1]));
         }
 
         private void Expander_Expanded(object sender, RoutedEventArgs e)
@@ -65,9 +53,49 @@ namespace MeowOS
             (sender as Expander).Height = 140;
         }
 
+        private void addGroupBtn_Click(object sender, RoutedEventArgs e)
+        {
+            GroupInfo gi = new GroupInfo(groups.Count + 1, "Новая группа");
+            EditGroupWindow egw = new EditGroupWindow(gi);
+            if (egw.ShowDialog().Value)
+                if (groups.Contains(gi.Name))
+                    MessageBox.Show("Группа с таким названием уже существует", "Ошибка");
+                else
+                {
+                    groups.Add(gi.Name);
+                    groupsListView.Items.Add(gi);
+                }
+        }
+
+
+        private void editGroupBtn_Click(object sender, RoutedEventArgs e)
+        {
+            //TODO
+            /*
+            GroupInfo gi = groupsListView.SelectedItem as GroupInfo;
+            EditGroupWindow egw = new EditGroupWindow(gi);
+            if (egw.ShowDialog().Value)
+            {
+                var namesakes = groups.FindAll(s => s.Equals(gi.Name));
+                if (namesakes.Count > 1 || namesakes.Count == 1 && )
+                    MessageBox.Show("Группа с таким названием уже существует", "Ошибка");
+                else
+                {
+                    groups.Add(gi.Name);
+                    groupsListView.Items.Add(gi);
+                }
+            }*/
+        }
+
         private void Expander_Collapsed(object sender, RoutedEventArgs e)
         {
             (sender as Expander).Height = 25;
+        }
+
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            usersData = UsefulThings.ENCODING.GetBytes(string.Join(UsefulThings.EOLN_STR, users));
+            groupsData = UsefulThings.ENCODING.GetBytes(string.Join(UsefulThings.EOLN_STR, groups));
         }
     }
 }

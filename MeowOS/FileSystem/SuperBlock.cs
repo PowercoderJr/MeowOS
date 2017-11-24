@@ -107,7 +107,7 @@ namespace MeowOS.FileSystem
         {
             ArrayList buffer = new ArrayList(expandToCluster ? clusterSize : SIZE);
 
-            buffer.AddRange(Encoding.GetEncoding(1251).GetBytes(fsType));
+            buffer.AddRange(UsefulThings.ENCODING.GetBytes(fsType));
             buffer.AddRange(BitConverter.GetBytes(clusterSize));
             buffer.AddRange(BitConverter.GetBytes(rootSize));
             buffer.AddRange(BitConverter.GetBytes(diskSize));
@@ -117,7 +117,7 @@ namespace MeowOS.FileSystem
             buffer.AddRange(BitConverter.GetBytes(dataOffset));
 
             if (expandToCluster)
-                buffer.AddRange(Encoding.GetEncoding(1251).GetBytes(new String('\0', clusterSize - SIZE).ToArray()));
+                buffer.AddRange(UsefulThings.ENCODING.GetBytes(new String('\0', clusterSize - SIZE).ToArray()));
 
             return buffer.OfType<byte>().ToArray();
         }
@@ -125,7 +125,7 @@ namespace MeowOS.FileSystem
         public override void fromByteArray(byte[] buffer)
         {
             int offset = 0;
-            FsType = Encoding.GetEncoding(1251).GetString(buffer, offset, FS_TYPE_MAX_LENGTH);
+            FsType = UsefulThings.ENCODING.GetString(buffer, offset, FS_TYPE_MAX_LENGTH);
             offset = FS_TYPE_MAX_LENGTH;
             ClusterSize = BitConverter.ToUInt16(buffer, offset);
             offset += sizeof(ushort);

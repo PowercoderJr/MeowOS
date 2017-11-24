@@ -63,12 +63,23 @@
       <DependentUpon>AuthWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="AutoGreyableImage.cs" />
+    <Compile Include="Common\GroupInfo.cs" />
     <Compile Include="Common\UserInfo.cs" />
     <Compile Include="Common\Session.cs" />
+    <Compile Include="EditGroupWindow.xaml.cs">
+      <DependentUpon>EditGroupWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="FileViewerWindow.xaml.cs">
+      <DependentUpon>FileViewerWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UsersManagerWindow.xaml.cs">
       <DependentUpon>UsersManagerWindow.xaml</DependentUpon>
     </Compile>
     <Page Include="AuthWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="EditGroupWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -81,6 +92,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="FileSystem\FileView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="FileViewerWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -100,7 +100,7 @@ namespace MeowOS
             }
             else
             {
-                //TODO
+                new FileViewerWindow(UsefulThings.ENCODING.GetString(fsctrl.readFile(senderFV.FileHeader))).ShowDialog();
             }
         }
 
@@ -117,6 +117,20 @@ namespace MeowOS
             byte[] groupsData = fsctrl.readFile("/groups.sys");
             UsersManagerWindow umw = new UsersManagerWindow(usersData, groupsData);
             umw.ShowDialog();
+
+            if (!umw.UsersData.SequenceEqual(usersData))
+            {
+                FileHeader usersHeader = fsctrl.getFileHeader("/users.sys");
+                fsctrl.deleteFile("/", usersHeader);
+                fsctrl.writeFile("/", usersHeader, umw.UsersData);
+            }
+
+            if (!umw.GroupsData.SequenceEqual(groupsData))
+            {
+                FileHeader groupsHeader = fsctrl.getFileHeader("/groups.sys");
+                fsctrl.deleteFile("/", groupsHeader);
+                fsctrl.writeFile("/", groupsHeader, umw.GroupsData);
+            }
         }
 
         private void MenuItem_fsProperties_Click(object sender, RoutedEventArgs e)

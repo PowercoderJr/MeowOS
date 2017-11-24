@@ -16,13 +16,35 @@ namespace MeowOS
         private ushort uid;
         public ushort Uid => uid;
         private string login;
-        public string Login => login;
+        public string Login
+        {
+            get => login;
+            set => login = value;
+        }
+        private string digest;
+        public string Digest
+        {
+            get => digest;
+            set => digest = value;
+        }
         private ushort gid;
-        public ushort Gid => gid;
+        public ushort Gid
+        {
+            get => gid;
+            set => gid = value;
+        }
         private string group;
-        public string Group => group;
+        public string Group
+        {
+            get => group;
+            set => group = value;
+        }
         private Roles role;
-        public Roles Role => role;
+        public Roles Role
+        {
+            get => role;
+            set => role = value;
+        }
 
         public UserInfo(ushort uid, string login, ushort gid, string group, Roles role)
         {

@@ -39,7 +39,7 @@ namespace MeowOS
             {
                 FileSystemController fsctrl = new FileSystemController();
                 SHA1 sha = SHA1.Create();
-                string digest = Encoding.GetEncoding(1251).GetString(sha.ComputeHash(Encoding.GetEncoding(1251).GetBytes(password)));
+                string digest = UsefulThings.ENCODING.GetString(sha.ComputeHash(UsefulThings.ENCODING.GetBytes(password)));
                 //Замена управляющих символов
                 digest = digest.Replace('|', 'x');
                 digest = digest.Replace('\r', 's');
@@ -57,7 +57,7 @@ namespace MeowOS
                         uint diskSize = 1 * FileSystemController.FACTOR * FileSystemController.FACTOR; //Раздел = 50 МБ (или 1 МБ для тестов)
                         fsctrl.SuperBlock = new SuperBlock(fsctrl, "MeowFS", clusterSize, rootSize, diskSize);
                         fsctrl.Fat = new FAT(fsctrl, (int)(diskSize / clusterSize));
-                        fsctrl.RootDir = Encoding.GetEncoding(1251).GetBytes(new String('\0', rootSize));
+                        fsctrl.RootDir = UsefulThings.ENCODING.GetBytes(new String('\0', rootSize));
                         fsctrl.createSpace(dialog.FileName, login, digest);
                         userInfo = new UserInfo(1, login, 1, UserInfo.DEFAULT_GROUP, UserInfo.Roles.ADMIN);
                         success = true;
@@ -68,29 +68,21 @@ namespace MeowOS
                         //TODO 24.11: вместо UsefulThings.readLine и UsefulThings.skipLine использовать способ из UserManagerWindow? (Encoding... Split...)
                         fsctrl.openSpace(dialog.FileName);
                         byte[] users = fsctrl.readFile("/users.sys");
+                        string[] usersStr = UsefulThings.fileFromByteArrToStringArr(users);
                         string[] user = { "","","","" }; //0 = login, 1 = digest, 2 = gid, 3 = role
-                        int uid = 0;
+                        int uid;
                         success = false;
-                        while (!success && users.Length > 0)
+                        for (uid = 1; uid <= usersStr.Length && !success; ++uid)
                         {
-                            ++uid;
-                            user = UsefulThings.readLine(users).Split(UsefulThings.USERDATA_SEPARATOR.ToString().ToArray(), StringSplitOptions.None);
-
+                            user = usersStr[uid - 1].Split(UsefulThings.USERDATA_SEPARATOR.ToString().ToArray(), StringSplitOptions.None);
                             success = user[0].ToLower().Equals(login.ToLower()) && user[1].Equals(digest);
-                            users = UsefulThings.skipLine(users);
                         }
                         if (success)
                         {
                             byte[] groups = fsctrl.readFile("/groups.sys");
+                            string[] groupsStr = UsefulThings.fileFromByteArrToStringArr(groups);
                             int gid = int.Parse(user[2]);
-                            for (int i = 1; i < gid && groups.Length > 0; ++i)
-                                groups = UsefulThings.skipLine(groups);
-
-                            //Может ли быть пользователь без группы?
-                            if (groups.Length > 0)
-                                userInfo = new UserInfo((ushort)uid, user[0], (ushort)int.Parse(user[2]), UsefulThings.readLine(groups), (UserInfo.Roles)int.Parse(user[3]));
-                            else
-                                success = false;
+                            userInfo = new UserInfo((ushort)uid, user[0], (ushort)int.Parse(user[2]), gid <= groupsStr.Length ? groupsStr[gid - 1] : groupsStr[0], (UserInfo.Roles)int.Parse(user[3]));
                         }
                     }
                 }

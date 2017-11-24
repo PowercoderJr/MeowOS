@@ -5,24 +5,25 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MeowOS"
         mc:Ignorable="d"
-        Title="Менеджер пользователей" Height="500" Width="700">
+        Title="Менеджер пользователей" Height="500" Width="700"
+        Closed="Window_Closed">
     <DockPanel>
         <ToolBarPanel DockPanel.Dock="Left" Width="220" Background="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Stretch">
             <Expander Header="Пользователи" Height="140" IsExpanded="True" Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
                 <StackPanel>
-                    <Button HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
+                    <Button Name="addUserBtn"  HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/plus.png" />
                             <Label Content="Добавить пользователя"/>
                         </DockPanel>
                     </Button>
-                    <Button HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
+                    <Button Name="editUserBtn" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/edit.png" />
                             <Label Content="Редактировать пользователя"/>
                         </DockPanel>
                     </Button>
-                    <Button HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
+                    <Button Name="deleteUserBtn" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/minus.png" />
                             <Label Content="Удалить пользователя"/>
@@ -32,19 +33,19 @@
             </Expander>
             <Expander Header="Группы" Height="140" IsExpanded="True"  Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
                 <StackPanel>
-                    <Button HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
+                    <Button Name="addGroupBtn" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="addGroupBtn_Click">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/plus.png" />
                             <Label Content="Добавить группу"/>
                         </DockPanel>
                     </Button>
-                    <Button HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
+                    <Button Name="editGroupBtn" HorizontalAlignment="Right" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Width="218" Click="editGroupBtn_Click">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/edit.png" />
                             <Label Content="Редактировать группу"/>
                         </DockPanel>
                     </Button>
-                    <Button HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
+                    <Button Name="deleteGroupBtn" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/minus.png" />
                             <Label Content="Удалить группу"/>
@@ -69,7 +70,7 @@
                     </GridView>
                 </ListView.View>
             </ListView>
-            <ListView Name="groupListView" Margin="10" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <ListView Name="groupsListView" Margin="10" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Path=Id}" Width="50"/>

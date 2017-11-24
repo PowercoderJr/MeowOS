@@ -15,7 +15,8 @@ namespace MeowOS
         public const char USERDATA_SEPARATOR = '|';
         public const char DELETED_MARK = '$';
         public const string EOLN_STR = "\r\n";
-        public static readonly byte[] EOLN_BYTES = Encoding.GetEncoding(1251).GetBytes(EOLN_STR);
+        public static readonly Encoding ENCODING = Encoding.GetEncoding(1251);
+        public static readonly byte[] EOLN_BYTES = ENCODING.GetBytes(EOLN_STR);
 
         public static string setStringLength(string input, int maxLength, char placeholder = '\0', Alignments alignment = Alignments.LEFT)
         {
@@ -93,12 +94,21 @@ namespace MeowOS
 
         public static string readLine(byte[] data)
         {
-            return Encoding.GetEncoding(1251).GetString(data.Take(Array.IndexOf(data, EOLN_BYTES.First())).ToArray());
+            return ENCODING.GetString(data.Take(Array.IndexOf(data, EOLN_BYTES.First())).ToArray());
         }
 
         public static byte[] skipLine(byte[] data)
         {
             return data.Skip(Array.IndexOf(data, EOLN_BYTES.Last()) + 1).ToArray();
+        }
+
+        public static string[] fileFromByteArrToStringArr(byte[] input)
+        {
+            string buf = ENCODING.GetString(input);
+            string[] output = buf.Split(new string[] { EOLN_STR }, StringSplitOptions.None);
+            int i;
+            for (i = output.Length - 1; i >= 0 && output[i].Length == 0; --i);
+            return output.Take(i + 1).ToArray();
         }
     }
 }

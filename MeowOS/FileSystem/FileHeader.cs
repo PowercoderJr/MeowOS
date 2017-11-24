@@ -232,8 +232,8 @@ namespace MeowOS.FileSystem
         public byte[] toByteArray(bool expandToCluster)
         {
             ArrayList buffer = new ArrayList(SIZE);
-            buffer.AddRange(Encoding.GetEncoding(1251).GetBytes(name.ToArray()));
-            buffer.AddRange(Encoding.GetEncoding(1251).GetBytes(extension.ToArray()));
+            buffer.AddRange(UsefulThings.ENCODING.GetBytes(name.ToArray()));
+            buffer.AddRange(UsefulThings.ENCODING.GetBytes(extension.ToArray()));
             buffer.AddRange(BitConverter.GetBytes(size));
             buffer.AddRange(BitConverter.GetBytes(accessRights));
             buffer.Add(flags);
@@ -249,9 +249,9 @@ namespace MeowOS.FileSystem
         public void fromByteArray(byte[] buffer)
         {
             int offset = 0;
-            Name = Encoding.GetEncoding(1251).GetString(buffer, offset, NAME_MAX_LENGTH);
+            Name = UsefulThings.ENCODING.GetString(buffer, offset, NAME_MAX_LENGTH);
             offset = NAME_MAX_LENGTH;
-            Extension = Encoding.GetEncoding(1251).GetString(buffer, offset, EXTENSION_MAX_LENGTH);
+            Extension = UsefulThings.ENCODING.GetString(buffer, offset, EXTENSION_MAX_LENGTH);
             offset += EXTENSION_MAX_LENGTH;
             Size = BitConverter.ToUInt32(buffer, offset);
             offset += sizeof(uint);

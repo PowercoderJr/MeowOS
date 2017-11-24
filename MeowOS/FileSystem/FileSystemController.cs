@@ -79,14 +79,14 @@ namespace MeowOS.FileSystem
 
             //Заголовок файла с группами пользователей
             FileHeader groupsHeader = new FileHeader("groups", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            writeFile("/", groupsHeader, Encoding.GetEncoding(1251).GetBytes(UserInfo.DEFAULT_GROUP + UsefulThings.EOLN_STR));
+            writeFile("/", groupsHeader, UsefulThings.ENCODING.GetBytes(UserInfo.DEFAULT_GROUP));
             //Заголовок файла с учётными записями пользователей
             FileHeader usersHeader = new FileHeader("users", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            writeFile("/", usersHeader, Encoding.GetEncoding(1251).GetBytes(
+            writeFile("/", usersHeader, UsefulThings.ENCODING.GetBytes(
                 adminLogin + UsefulThings.USERDATA_SEPARATOR +
                 adminDigest + UsefulThings.USERDATA_SEPARATOR + 
                 "1" + UsefulThings.USERDATA_SEPARATOR + 
-                (int)UserInfo.Roles.ADMIN + UsefulThings.EOLN_STR));
+                (int)UserInfo.Roles.ADMIN));
 
             FileHeader justFile = new FileHeader("justFile", "txt", 0, 1, 1);
             writeFile("/", justFile, null);
@@ -97,9 +97,9 @@ namespace MeowOS.FileSystem
             FileHeader kek2 = new FileHeader("kek2", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
             writeFile("/kek1/", kek2, null);
             FileHeader kek3 = new FileHeader("kek3", "aza", 0, 1, 1);
-            writeFile("/kek1/kek2/", kek3, Encoding.GetEncoding(1251).GetBytes("Mama ama kek3.aza!"));
+            writeFile("/kek1/kek2/", kek3, UsefulThings.ENCODING.GetBytes("Mama ama kek3.aza!"));
             FileHeader kek4 = new FileHeader("kek4", "aza", 0, 1, 1);
-            writeFile("/kek1/kek2/", kek4, Encoding.GetEncoding(1251).GetBytes("Mama ama kek4.aza!"));
+            writeFile("/kek1/kek2/", kek4, UsefulThings.ENCODING.GetBytes("Mama ama kek4.aza!"));
             deleteFile("/kek1/kek2/", kek3);
         }
 
@@ -119,7 +119,7 @@ namespace MeowOS.FileSystem
 
             //Корневой каталог
             br.BaseStream.Seek((int)superBlock.RootOffset, SeekOrigin.Begin);
-            //rootDir = Encoding.GetEncoding(1251).GetString(br.ReadBytes(superBlock.RootSize));
+            //rootDir = UsefulThings.ENCODING.GetString(br.ReadBytes(superBlock.RootSize));
             rootDir = br.ReadBytes(superBlock.RootSize);
         }
 
@@ -157,7 +157,7 @@ namespace MeowOS.FileSystem
             fat.Table[firstCluster] = FAT.CL_WRITING;
             fileHeader.Size = (uint)(data == null ? 0 : data.Length);
             if (data == null || data.Length == 0)
-                data = Encoding.GetEncoding(1251).GetBytes("\0");
+                data = UsefulThings.ENCODING.GetBytes("\0");
 
             //Запись заголовка
             //TODO 15.11: проверить, что такого файла ещё нет
