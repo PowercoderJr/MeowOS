@@ -80,12 +80,11 @@ namespace MeowOS.FileSystem
                     fh.AccessRights &= (ushort)~(1 << i);
 
             DialogResult = true;
-            Close();
         }
 
         private void cancelBtn_Click(object sender, RoutedEventArgs e)
         {
-            Close();
+            DialogResult = false;
         }
         
         private void nameOrExtensionChanged(object sender, TextChangedEventArgs e)

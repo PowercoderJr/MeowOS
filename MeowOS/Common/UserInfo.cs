@@ -54,5 +54,23 @@ namespace MeowOS
             this.group = group;
             this.role = role;
         }
+
+        public UserInfo(ushort uid, string login, string digest, ushort gid, string group, Roles role)
+        {
+            this.uid = uid;
+            this.login = login;
+            this.digest = digest;
+            this.gid = gid;
+            this.group = group;
+            this.role = role;
+        }
+
+        public override string ToString()
+        {
+            return login + UsefulThings.USERDATA_SEPARATOR +
+                digest + UsefulThings.USERDATA_SEPARATOR +
+                gid.ToString() + UsefulThings.USERDATA_SEPARATOR +
+                role.ToString();
+        }
     }
 }

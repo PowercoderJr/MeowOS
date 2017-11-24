@@ -27,7 +27,7 @@ namespace MeowOS
         {
             InitializeComponent();
         }
-        
+
         private void authorize(string login, string password, bool createNew, ContentControl statusControl)
         {
             statusControl.Visibility = Visibility.Hidden;
@@ -69,20 +69,20 @@ namespace MeowOS
                         fsctrl.openSpace(dialog.FileName);
                         byte[] users = fsctrl.readFile("/users.sys");
                         string[] usersStr = UsefulThings.fileFromByteArrToStringArr(users);
-                        string[] user = { "","","","" }; //0 = login, 1 = digest, 2 = gid, 3 = role
-                        int uid;
+                        string[] tokens = { "", "", "", "" }; //0 = login, 1 = digest, 2 = gid, 3 = role
+                        ushort uid;
                         success = false;
-                        for (uid = 1; uid <= usersStr.Length && !success; ++uid)
+                        for (uid = 0; uid < usersStr.Length && !success; ++uid)
                         {
-                            user = usersStr[uid - 1].Split(UsefulThings.USERDATA_SEPARATOR.ToString().ToArray(), StringSplitOptions.None);
-                            success = user[0].ToLower().Equals(login.ToLower()) && user[1].Equals(digest);
+                            tokens = usersStr[uid].Split(UsefulThings.USERDATA_SEPARATOR.ToString().ToArray(), StringSplitOptions.None);
+                            success = tokens[0].ToLower().Equals(login.ToLower()) && tokens[1].Equals(digest);
                         }
                         if (success)
                         {
                             byte[] groups = fsctrl.readFile("/groups.sys");
                             string[] groupsStr = UsefulThings.fileFromByteArrToStringArr(groups);
-                            int gid = int.Parse(user[2]);
-                            userInfo = new UserInfo((ushort)uid, user[0], (ushort)int.Parse(user[2]), gid <= groupsStr.Length ? groupsStr[gid - 1] : groupsStr[0], (UserInfo.Roles)int.Parse(user[3]));
+                            ushort gid = ushort.Parse(tokens[2]); if (gid > groups.Length) gid = 1;
+                            userInfo = new UserInfo(uid, tokens[0], gid, groupsStr[gid - 1], (UserInfo.Roles)Enum.Parse(typeof(UserInfo.Roles), tokens[3]));
                         }
                     }
                 }
@@ -109,7 +109,7 @@ namespace MeowOS
                 }
             }
         }
-        
+
         private void openClick(object sender, RoutedEventArgs e)
         {
             authorize(loginEdit.Text, passEdit.Password, false, statusLabel);

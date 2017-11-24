@@ -22,5 +22,10 @@ namespace MeowOS.Common
             this.id = id;
             this.name = name;
         }
+
+        public override string ToString()
+        {
+            return name;
+        }
     }
 }

@@ -20,17 +20,9 @@ namespace MeowOS
     /// </summary>
     public partial class EditGroupWindow : Window
     {
-        private GroupInfo gi;
-        public GroupInfo Gi
-        {
-            get => gi;
-            set => gi = value;
-        }
-
         public EditGroupWindow(GroupInfo gi)
         {
             InitializeComponent();
-            this.gi = gi;
             nameEdit.Text = gi.Name;
         }
 
@@ -42,7 +34,6 @@ namespace MeowOS
 
         private void okClick(object sender, RoutedEventArgs e)
         {
-            gi.Name = nameEdit.Text;
             DialogResult = true;
         }
 
