@@ -28,7 +28,10 @@ namespace MeowOS
 
         private void okClick(object sender, RoutedEventArgs e)
         {
-            DialogResult = true;
+            if (changePassChb.IsChecked.Value && !pass1Edit.Password.Equals(pass2Edit.Password))
+                MessageBox.Show("Новый пароль и подтверждение пароля не совпадают", "Ошибка");
+            else
+                DialogResult = true;
         }
 
         private void cancelClick(object sender, RoutedEventArgs e)

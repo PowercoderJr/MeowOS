@@ -110,5 +110,10 @@ namespace MeowOS
             for (i = output.Length - 1; i >= 0 && output[i].Length == 0; --i);
             return output.Take(i + 1).ToArray();
         }
+
+        public static string replaceControlChars(string input)
+        {
+            return input.Replace('|', 'x').Replace('\r', 's').Replace('\n', 'f');
+        }
     }
 }

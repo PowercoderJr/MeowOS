@@ -27,6 +27,7 @@ namespace MeowOS
             get => digest;
             set => digest = value;
         }
+        //TODO 25.11: заменить gid и group на экземпляр GroupInfo?
         private ushort gid;
         public ushort Gid
         {

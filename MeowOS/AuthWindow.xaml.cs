@@ -40,10 +40,7 @@ namespace MeowOS
                 FileSystemController fsctrl = new FileSystemController();
                 SHA1 sha = SHA1.Create();
                 string digest = UsefulThings.ENCODING.GetString(sha.ComputeHash(UsefulThings.ENCODING.GetBytes(password)));
-                //Замена управляющих символов
-                digest = digest.Replace('|', 'x');
-                digest = digest.Replace('\r', 's');
-                digest = digest.Replace('\n', 'f');
+                digest = UsefulThings.replaceControlChars(digest);
                 bool success;
 
                 try
@@ -72,13 +69,14 @@ namespace MeowOS
                         string[] tokens = { "", "", "", "" }; //0 = login, 1 = digest, 2 = gid, 3 = role
                         ushort uid;
                         success = false;
-                        for (uid = 0; uid < usersStr.Length && !success; ++uid)
+                        for (uid = 1; uid <= usersStr.Length && !success; ++uid)
                         {
-                            tokens = usersStr[uid].Split(UsefulThings.USERDATA_SEPARATOR.ToString().ToArray(), StringSplitOptions.None);
+                            tokens = usersStr[uid - 1].Split(UsefulThings.USERDATA_SEPARATOR.ToString().ToArray(), StringSplitOptions.None);
                             success = tokens[0].ToLower().Equals(login.ToLower()) && tokens[1].Equals(digest);
                         }
                         if (success)
                         {
+                            --uid;
                             byte[] groups = fsctrl.readFile("/groups.sys");
                             string[] groupsStr = UsefulThings.fileFromByteArrToStringArr(groups);
                             ushort gid = ushort.Parse(tokens[2]); if (gid > groups.Length) gid = 1;

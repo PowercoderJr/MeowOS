@@ -9,7 +9,7 @@
     <Grid FocusManager.FocusedElement="{Binding ElementName=loginEdit}" Margin="0,0,0,0">
         <Label Content="Логин:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
         <TextBox Name="loginEdit" HorizontalAlignment="Left" Height="23" Margin="146,12,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
-        <CheckBox Content="Изменить пароль" HorizontalAlignment="Left" Margin="10,36,0,0" VerticalAlignment="Top" Checked="changePassChbChanged" Unchecked="changePassChbChanged"/>
+        <CheckBox Name="changePassChb" Content="Изменить пароль" HorizontalAlignment="Left" Margin="10,36,0,0" VerticalAlignment="Top" Checked="changePassChbChanged" Unchecked="changePassChbChanged"/>
         <Grid Name="changePassGrid" Margin="10,54,0,96" Height="52" HorizontalAlignment="Stretch" Visibility="Hidden">
             <Label Content="Новый пароль:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
             <PasswordBox Name="pass1Edit" HorizontalAlignment="Left" Height="23" Margin="136,2,0,0" VerticalAlignment="Top" Width="120"/>

@@ -17,13 +17,13 @@
                             <Label Content="Добавить пользователя"/>
                         </DockPanel>
                     </Button>
-                    <Button Name="editUserBtn" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="editUserBtn_Click">
+                    <Button Name="editUserBtn" IsEnabled="False" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="editUserBtn_Click">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/edit.png" />
                             <Label Content="Редактировать пользователя"/>
                         </DockPanel>
                     </Button>
-                    <Button Name="deleteUserBtn" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="deleteUserBtn_Click">
+                    <Button Name="deleteUserBtn" IsEnabled="False" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="deleteUserBtn_Click">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/minus.png" />
                             <Label Content="Удалить пользователя"/>
@@ -39,13 +39,13 @@
                             <Label Content="Добавить группу"/>
                         </DockPanel>
                     </Button>
-                    <Button Name="editGroupBtn" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="editGroupBtn_Click">
+                    <Button Name="editGroupBtn" IsEnabled="False" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="editGroupBtn_Click">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/edit.png" />
                             <Label Content="Редактировать группу"/>
                         </DockPanel>
                     </Button>
-                    <Button Name="deleteGroupBtn" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="deleteGroupBtn_Click">
+                    <Button Name="deleteGroupBtn" IsEnabled="False" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="deleteGroupBtn_Click">
                         <DockPanel>
                             <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/minus.png" />
                             <Label Content="Удалить группу"/>
@@ -59,7 +59,7 @@
                 <RowDefinition/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
-            <ListView Name="usersListView" Margin="10" Grid.Row="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <ListView Name="usersListView" Margin="10" Grid.Row="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" SelectionChanged="usersListView_SelectionChanged">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn Header="UID" DisplayMemberBinding="{Binding Path=Uid}" Width="50"/>
@@ -70,7 +70,7 @@
                     </GridView>
                 </ListView.View>
             </ListView>
-            <ListView Name="groupsListView" Margin="10" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <ListView Name="groupsListView" Margin="10" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" SelectionChanged="groupsListView_SelectionChanged">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Path=Id}" Width="50"/>

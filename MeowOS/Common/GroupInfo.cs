@@ -8,8 +8,8 @@ namespace MeowOS.Common
 {
     public class GroupInfo
     {
-        private int id;
-        public int Id => id;
+        private ushort id;
+        public ushort Id => id;
         private string name;
         public string Name
         {
@@ -17,7 +17,7 @@ namespace MeowOS.Common
             set => name = value;
         }
 
-        public GroupInfo(int id, string name)
+        public GroupInfo(ushort id, string name)
         {
             this.id = id;
             this.name = name;

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -34,7 +35,7 @@ namespace MeowOS
 
             string[] tmp = UsefulThings.fileFromByteArrToStringArr(groupsData);
             groups = new List<GroupInfo>();
-            for (int i = 1; i <= tmp.Length; ++i)
+            for (ushort i = 1; i <= tmp.Length; ++i)
             {
                 GroupInfo gi = new GroupInfo(i, tmp[i - 1]);
                 groups.Add(gi);
@@ -76,9 +77,10 @@ namespace MeowOS
             (sender as Expander).Height = 140;
         }
 
+        //TODO 25.11: запретить удалять первые uid и gid, запретить делать первый uid USER'ом, запретить менять группу первого uid
         private void addGroupBtn_Click(object sender, RoutedEventArgs e)
         {
-            GroupInfo gi = new GroupInfo(groups.Count + 1, "Новаягруппа");
+            GroupInfo gi = new GroupInfo((ushort)(groups.Count + 1), "Новаягруппа");
             EditGroupWindow egw = new EditGroupWindow(gi);
             if (egw.ShowDialog().Value)
             {
@@ -121,76 +123,103 @@ namespace MeowOS
 
         private void deleteGroupBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (MessageBox.Show("Вы действительно хотите удалить группу \"" + (groupsListView.SelectedItem as GroupInfo) + "\"?", "Подтвердите действие", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (MessageBox.Show("Вы действительно хотите удалить группу \"" + (groupsListView.SelectedItem as GroupInfo).Name + 
+                "\"?\r\nЕсли в системе есть пользователи, принадлежащие этой группе, они будут перемещены в группу \"" +
+                groups[0].Name + "\" (id=1)", "Подтвердите действие", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
                 int index = groupsListView.SelectedIndex;
-                int gid = (groupsListView.SelectedItem as GroupInfo).Id;
+                ushort gid = (groupsListView.SelectedItem as GroupInfo).Id;
                 groupsListView.Items.RemoveAt(index);
                 groups[gid - 1].Name = UsefulThings.DELETED_MARK + groups[gid - 1].Name.Remove(0, 1);
+                List<UserInfo> immigrants = users.FindAll(item => item.Gid == gid);
+                if (immigrants.Count > 0)
+                {
+                    foreach (UserInfo ui in immigrants)
+                    {
+                        ui.Gid = 1;
+                        ui.Group = groups[0].Name;
+                    }
+                    reloadUsers();
+                }
             }
         }
 
         private void addUserBtn_Click(object sender, RoutedEventArgs e)
         {
-            UserInfo ui = new UserInfo((ushort)users.Count, "Новыйпользователь", 1, groups[0].Name, UserInfo.Roles.USER);
+            UserInfo ui = new UserInfo((ushort)(users.Count + 1), "Новыйпользователь", 1, groups[0].Name, UserInfo.Roles.USER);
             EditUserWindow euw = new EditUserWindow(ui, groups.FindAll(item => item.Name[0] != UsefulThings.DELETED_MARK));
+            euw.changePassChb.IsChecked = true;
+            euw.changePassChb.IsEnabled = false;
             if (euw.ShowDialog().Value)
-                ;
-            /*GroupInfo gi = new GroupInfo(groups.Count + 1, "Новая группа");
-            EditGroupWindow egw = new EditGroupWindow(gi);
-            if (egw.ShowDialog().Value)
             {
-                string newName = egw.nameEdit.Text;
-                if (groups.Find(item => item.Name.Equals(newName)) != null)
-                    MessageBox.Show("Группа с таким названием уже существует", "Ошибка");
+                string newLogin = euw.loginEdit.Text;
+                if (users.Find(item => item.Login.Equals(newLogin)) != null)
+                    MessageBox.Show("Пользователь с таким логином уже существует", "Ошибка");
                 else
                 {
-                    gi.Name = newName;
-                    groups.Add(gi);
-                    groupsListView.Items.Add(gi);
+                    SHA1 sha = SHA1.Create();
+                    ui.Login = newLogin;
+                    ui.Digest = UsefulThings.ENCODING.GetString(sha.ComputeHash(UsefulThings.ENCODING.GetBytes(euw.pass1Edit.Password)));
+                    ui.Digest = UsefulThings.replaceControlChars(ui.Digest);
+                    ui.Gid = (euw.groupCB.SelectedItem as GroupInfo).Id;
+                    ui.Group = (euw.groupCB.SelectedItem as GroupInfo).Name;
+                    ui.Role = (UserInfo.Roles)Enum.Parse(typeof(UserInfo.Roles), euw.roleCB.SelectedItem.ToString());
+                    users.Add(ui);
+                    usersListView.Items.Add(ui);
                 }
-            }*/
+            }
         }
 
         private void editUserBtn_Click(object sender, RoutedEventArgs e)
         {
-            /*GroupInfo gi = groupsListView.SelectedItem as GroupInfo;
-            EditGroupWindow egw = new EditGroupWindow(gi);
-            if (egw.ShowDialog().Value)
+            UserInfo ui = usersListView.SelectedItem as UserInfo;
+            EditUserWindow euw = new EditUserWindow(ui, groups.FindAll(item => item.Name[0] != UsefulThings.DELETED_MARK));
+            if (euw.ShowDialog().Value)
             {
-                string newName = egw.nameEdit.Text;
-                List<GroupInfo> namesakes = groups.FindAll(item => item.Name.Equals(newName));
-                if (namesakes.Count > 1 || namesakes.Count == 1 && namesakes[0].Id != (groupsListView.SelectedItem as GroupInfo).Id)
+                string newLogin = euw.loginEdit.Text;
+                List<UserInfo> namesakes = users.FindAll(item => item.Login.Equals(newLogin));
+                if (namesakes.Count > 1 || namesakes.Count == 1 && namesakes[0].Uid != (usersListView.SelectedItem as UserInfo).Uid)
                     MessageBox.Show("Группа с таким названием уже существует", "Ошибка");
                 else
                 {
-                    int index = groupsListView.SelectedIndex;
-                    gi.Name = newName;
-                    reloadGroups();
-                    groupsListView.SelectedIndex = index;
-
-                    foreach (UserInfo ui in users)
-                        if (ui.Gid == gi.Id)
-                            ui.Group = gi.Name;
+                    int index = usersListView.SelectedIndex;
+                    SHA1 sha = SHA1.Create();
+                    ui.Login = newLogin;
+                    ui.Digest = UsefulThings.ENCODING.GetString(sha.ComputeHash(UsefulThings.ENCODING.GetBytes(euw.pass1Edit.Password)));
+                    ui.Digest = UsefulThings.replaceControlChars(ui.Digest);
+                    ui.Gid = (euw.groupCB.SelectedItem as GroupInfo).Id;
+                    ui.Group = (euw.groupCB.SelectedItem as GroupInfo).Name;
+                    ui.Role = (UserInfo.Roles)Enum.Parse(typeof(UserInfo.Roles), euw.roleCB.SelectedItem.ToString());
                     reloadUsers();
+                    usersListView.SelectedIndex = index;
                 }
-            }*/
+            }
         }
 
         private void deleteUserBtn_Click(object sender, RoutedEventArgs e)
         {
-            /*if (MessageBox.Show("Вы действительно хотите удалить группу \"" + (groupsListView.SelectedItem as GroupInfo) + "\"?", "Подтвердите действие", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (MessageBox.Show("Вы действительно хотите удалить пользователя \"" + (usersListView.SelectedItem as UserInfo).Login + "\"?", "Подтвердите действие", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
-                int index = groupsListView.SelectedIndex;
-                int gid = (groupsListView.SelectedItem as GroupInfo).Id;
-                groupsListView.Items.RemoveAt(index);
-                groups[gid - 1].Name = UsefulThings.DELETED_MARK + groups[gid - 1].Name.Remove(0, 1);
-            }*/
+                int index = usersListView.SelectedIndex;
+                int uid = (usersListView.SelectedItem as UserInfo).Uid;
+                usersListView.Items.RemoveAt(index);
+                users[uid - 1].Login = UsefulThings.DELETED_MARK + users[uid - 1].Login.Remove(0, 1);
+            }
         }
 
         private void Expander_Collapsed(object sender, RoutedEventArgs e)
         {
             (sender as Expander).Height = 25;
+        }
+
+        private void usersListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            editUserBtn.IsEnabled = deleteUserBtn.IsEnabled = usersListView.SelectedItem != null;
+        }
+
+        private void groupsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            editGroupBtn.IsEnabled = deleteGroupBtn.IsEnabled = groupsListView.SelectedItem != null;
         }
 
         private void Window_Closed(object sender, EventArgs e)
