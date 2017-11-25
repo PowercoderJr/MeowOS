@@ -62,7 +62,6 @@ namespace MeowOS
                     else
                     {
                         //Открыть
-                        //TODO 24.11: вместо UsefulThings.readLine и UsefulThings.skipLine использовать способ из UserManagerWindow? (Encoding... Split...)
                         fsctrl.openSpace(dialog.FileName);
                         byte[] users = fsctrl.readFile("/users.sys");
                         string[] usersStr = UsefulThings.fileFromByteArrToStringArr(users);

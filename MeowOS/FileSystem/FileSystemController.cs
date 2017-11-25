@@ -56,7 +56,7 @@ namespace MeowOS.FileSystem
         {
             closeSpace();
             this.path = path;
-            space = System.IO.File.Open(path, FileMode.Create, FileAccess.ReadWrite);
+            space = File.Open(path, FileMode.Create, FileAccess.ReadWrite);
             bw = new BinaryWriter(space);
             br = new BinaryReader(space);
 
@@ -107,7 +107,7 @@ namespace MeowOS.FileSystem
         {
             closeSpace();
             this.path = path;
-            space = System.IO.File.Open(path, FileMode.Open, FileAccess.ReadWrite); //TODO 14.11: предупреждать, если файл не найден
+            space = File.Open(path, FileMode.Open, FileAccess.ReadWrite);
             bw = new BinaryWriter(space);
             br = new BinaryReader(space);
 
@@ -165,7 +165,6 @@ namespace MeowOS.FileSystem
                 data = UsefulThings.ENCODING.GetBytes("\0");
 
             //Запись заголовка
-            //TODO 15.11: проверить, что такого файла ещё нет
             int posToWrite;
             if (path == null || path.Length == 0)
             {
@@ -205,8 +204,8 @@ namespace MeowOS.FileSystem
                 else
                     directory = directory.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(directory.Skip(posToWrite + FileHeader.SIZE)).ToArray();
                 
-                deleteFile(pathWithoutLastDir, lastDirHeader);
-                writeFile(pathWithoutLastDir, lastDirHeader, directory);
+                //deleteFile(pathWithoutLastDir, lastDirHeader);
+                rewriteFile(pathWithoutLastDir, lastDirHeader, directory);
             }
 
             //Запись данных
@@ -270,7 +269,7 @@ namespace MeowOS.FileSystem
             //Помечание блоков как свободных
             writeArea(Areas.FAT2);
             int nextCluster;
-            while (fat.Table[currCluster] != FAT.CL_EOF)
+            while (fat.Table[currCluster] != FAT.CL_EOF && fat.Table[currCluster] != FAT.CL_FREE)
             {
                 nextCluster = fat.Table[currCluster];
                 fat.Table[currCluster] = FAT.CL_FREE;
@@ -278,6 +277,34 @@ namespace MeowOS.FileSystem
             }
             fat.Table[currCluster] = FAT.CL_FREE;
             writeArea(Areas.FAT1);
+        }
+        
+        /// <summary>Перезаписывает файл по указанному пути</summary>
+        /// <param name="path">Путь к директории, куда следует записать файл</param>
+        /// <param name="fileHeader">Заголовок файла</param>
+        /// <param name="data">Содержимое файла</param>
+        public void rewriteFile(string path, FileHeader fileHeader, byte[] data)
+        {
+            byte[] buf = null;
+            if (getFileHeader(path + fileHeader.NamePlusExtension) != null)
+            {
+                buf = readFile(fileHeader);
+                deleteFile(path, fileHeader);
+            }
+            try
+            {
+                writeFile(path, fileHeader, data);
+            }
+            catch (Exception e)
+            {
+                deleteFile(path, fileHeader);
+                if (buf != null)
+                {
+                    writeFile(path, fileHeader, buf);
+                }
+                throw e;
+            }
+
         }
 
         private void writeArea(Areas area)
@@ -456,7 +483,6 @@ namespace MeowOS.FileSystem
         /// <returns>Содержимое файла</returns>
         public byte[] readFile(FileHeader fh)
         {
-            //TODO 17.11: читать файлы, разбитые на блоки
             byte[] result = new byte[0];
             int currCluster = fh.FirstCluster, toRead = (int)fh.Size, toReadOnThisStep;
             while (currCluster != FAT.CL_EOF && toRead > 0)

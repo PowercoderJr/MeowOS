@@ -1,7 +1,9 @@
 ﻿using MeowOS.FileSystem;
 using MeowOS.FileSystem.Exceptions;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -27,7 +29,7 @@ namespace MeowOS
         private UserInfo.Roles role;
         private byte[] bufferFH, bufferData;
         private string bufferRestorePath;
-        private delegate void OperationOnSelection();
+        private FileView selection;
 
         public MainWindow(string path, UserInfo.Roles role)
         {
@@ -67,7 +69,7 @@ namespace MeowOS
                 }
                 fsctrl.CurrDir = path;
                 addressEdit.Text = fsctrl.CurrDir;
-                FileView.selection = null;
+                selection = null;
                 if (fsctrl.CurrDir == "/")
                     backImg.IsEnabled = false;
                 else
@@ -88,11 +90,21 @@ namespace MeowOS
                 if (!fh.IsHidden || fh.IsHidden && showHiddenChb.IsChecked.Value)
                 {
                     fv = new FileView(fh);
-                    fv.MouseDoubleClick += new MouseButtonEventHandler(onFileViewDoubleClick);
+                    fv.PreviewMouseDown += onFileViewMouseDown;
+                    fv.MouseDoubleClick += onFileViewDoubleClick;
                     wrapPanel.Children.Add(fv);
                 }
             }
             return fv;
+        }
+
+        public void onFileViewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (selection != null)
+                selection.panel.Background = Brushes.Transparent;
+            FileView senderFV = sender as FileView;
+            selection = senderFV;
+            senderFV.panel.Background = FileView.selectionBrush;
         }
 
         private void onFileViewDoubleClick(object sender, MouseButtonEventArgs e)
@@ -115,25 +127,38 @@ namespace MeowOS
             openDirectory(newPath);
         }
 
-        private void MenuItem_UsersManager_Click(object sender, RoutedEventArgs e)
+        private void MenuItem_UsersManager_Click(object sender, RoutedEventArgs ea)
         {
             byte[] usersData = fsctrl.readFile("/users.sys");
             byte[] groupsData = fsctrl.readFile("/groups.sys");
             UsersManagerWindow umw = new UsersManagerWindow(usersData, groupsData);
             umw.ShowDialog();
 
-            if (!umw.UsersData.SequenceEqual(usersData))
+            try
             {
-                FileHeader usersHeader = fsctrl.getFileHeader("/users.sys");
-                fsctrl.deleteFile("/", usersHeader);
-                fsctrl.writeFile("/", usersHeader, umw.UsersData);
-            }
+                if (!umw.UsersData.SequenceEqual(usersData))
+                {
+                    FileHeader usersHeader = fsctrl.getFileHeader("/users.sys");
+                    //fsctrl.deleteFile("/", usersHeader);
+                    fsctrl.rewriteFile("/", usersHeader, umw.UsersData);
+                }
 
-            if (!umw.GroupsData.SequenceEqual(groupsData))
+                if (!umw.GroupsData.SequenceEqual(groupsData))
+                {
+                    FileHeader groupsHeader = fsctrl.getFileHeader("/groups.sys");
+                    //fsctrl.deleteFile("/", groupsHeader);
+                    fsctrl.rewriteFile("/", groupsHeader, umw.GroupsData);
+                }
+            }
+            catch (Exception e)
             {
-                FileHeader groupsHeader = fsctrl.getFileHeader("/groups.sys");
-                fsctrl.deleteFile("/", groupsHeader);
-                fsctrl.writeFile("/", groupsHeader, umw.GroupsData);
+                MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                /*rewrite разбирается сам
+                if (e is RootdirOutOfSpaceException || e is DiskOutOfSpaceException)
+                {
+                    fsctrl.restoreFat();
+                }*/
             }
         }
 
@@ -183,53 +208,64 @@ namespace MeowOS
                 {
                     fsctrl.writeFile(fsctrl.CurrDir, fh, null);
                     FileView fv = addFileView(fh);
-                    fv.onLMBDown(fv, null);
+                    onFileViewMouseDown(fv, null);
                 }
                 catch (Exception e)
                 {
                     MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    if (e is RootdirOutOfSpaceException || e is DiskOutOfSpaceException)
+                    {
+                        try
+                        {
+                            fsctrl.deleteFile(fsctrl.CurrDir, fh);
+                        }
+                        catch
+                        {
+                            //ignore
+                        }
+                    }
                 }
             }
         }
         
         private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
         {
-            operationOnSelection(openCmd);
+            openCmd();
         }
 
         private void openCmd()
         {
-            onFileViewDoubleClick(FileView.selection, null);
+            onFileViewDoubleClick(selection, null);
         }
 
         private void MenuItem_Delete_Click(object sender, RoutedEventArgs e)
         {
-            operationOnSelection(deleteCmd);
+            deleteCmd();
         }
 
         private void deleteCmd()
         {
-            fsctrl.deleteFile(fsctrl.CurrDir, FileView.selection.FileHeader);
-            wrapPanel.Children.Remove(FileView.selection);
-            FileView.selection = null;
+            fsctrl.deleteFile(fsctrl.CurrDir, selection.FileHeader);
+            wrapPanel.Children.Remove(selection);
+            selection = null;
         }
 
         private void MenuItem_Copy_Click(object sender, RoutedEventArgs e)
         {
-            operationOnSelection(copyCmd);
+            copyCmd();
         }
 
         private void copyCmd()
         {
             //TODO 22.11: копировать также вложенные файлы
-            bufferFH = FileView.selection.FileHeader.toByteArray(false);
-            bufferData = fsctrl.readFile(FileView.selection.FileHeader);
+            bufferFH = selection.FileHeader.toByteArray(false);
+            bufferData = fsctrl.readFile(selection.FileHeader);
             bufferRestorePath = null;
         }
 
         private void MenuItem_Cut_Click(object sender, RoutedEventArgs e)
         {
-            operationOnSelection(cutCmd);
+            cutCmd();
         }
 
         private void cutCmd()
@@ -249,13 +285,13 @@ namespace MeowOS
 
         private void pasteCmd()
         {
+            FileHeader fh = new FileHeader(bufferFH);
             try
             {
-                FileHeader fh = new FileHeader(bufferFH);
                 fsctrl.writeFile(fsctrl.CurrDir, fh, bufferData);
                 FileView fv = addFileView(fh);
                 if (fv != null)
-                    fv.onLMBDown(fv, null);
+                    onFileViewMouseDown(fv, null);
             }
             catch (Exception e)
             {
@@ -264,8 +300,29 @@ namespace MeowOS
                 {
                     try
                     {
-                        FileHeader fh = new FileHeader(bufferFH);
-                        fsctrl.writeFile(bufferRestorePath, fh, bufferData);
+                        FileHeader fhRestore = new FileHeader(bufferFH);
+                        fsctrl.writeFile(bufferRestorePath, fhRestore, bufferData);
+                    }
+                    catch (Exception eRestore)
+                    {
+                        if (eRestore is RootdirOutOfSpaceException || eRestore is DiskOutOfSpaceException)
+                        {
+                            try
+                            {
+                                fsctrl.deleteFile(fsctrl.CurrDir, fh);
+                            }
+                            catch
+                            {
+                                //ignore
+                            }
+                        }
+                    }
+                }
+                if (e is RootdirOutOfSpaceException || e is DiskOutOfSpaceException)
+                {
+                    try
+                    {
+                        fsctrl.deleteFile(fsctrl.CurrDir, fh);
                     }
                     catch
                     {
@@ -283,17 +340,17 @@ namespace MeowOS
 
         private void MenuItem_Properties_Click(object sender, RoutedEventArgs e)
         {
-            operationOnSelection(propertiesCmd);
+            propertiesCmd();
         }
         
         private void propertiesCmd()
         {
-            int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + FileView.selection.FileHeader.NamePlusExtension);
-            FilePropertiesWindow fpw = new FilePropertiesWindow(FileView.selection.FileHeader);
+            int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + selection.FileHeader.NamePlusExtension);
+            FilePropertiesWindow fpw = new FilePropertiesWindow(selection.FileHeader);
             if (fpw.ShowDialog().Value)
             {
-                fsctrl.writeBytes(headerOffset, FileView.selection.FileHeader.toByteArray(false));
-                FileView.selection.refresh();
+                fsctrl.writeBytes(headerOffset, selection.FileHeader.toByteArray(false));
+                selection.refresh();
             }
         }
 
@@ -302,12 +359,66 @@ namespace MeowOS
             openDirectory(fsctrl.CurrDir);
         }
 
-        private void operationOnSelection(OperationOnSelection operation)
+        private void MenuItem_Upload_Click(object sender, RoutedEventArgs e)
         {
-            if (FileView.selection != null)
-                operation(); 
-            else
-                MessageBox.Show("Нет выделения", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+            uploadCmd();
+        }
+
+        private void uploadCmd()
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            if (ofd.ShowDialog().Value)
+            {
+                //TODO: 22.11: проверить права записи
+                FileHeader fh = new FileHeader(string.Concat(System.IO.Path.GetFileNameWithoutExtension(ofd.SafeFileName).Where(char.IsLetterOrDigit)),
+                    string.Concat(System.IO.Path.GetExtension(ofd.SafeFileName).Where(char.IsLetterOrDigit)), 0,
+                    Session.userInfo.Uid, Session.userInfo.Gid);
+                try
+                {
+                    byte[] data = File.ReadAllBytes(ofd.FileName);
+                    fsctrl.writeFile(fsctrl.CurrDir, fh, data);
+                    FileView fv = addFileView(fh);
+                    onFileViewMouseDown(fv, null);
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    if (e is RootdirOutOfSpaceException || e is DiskOutOfSpaceException)
+                    {
+                        try
+                        {
+                            fsctrl.deleteFile(fsctrl.CurrDir, fh);
+                        }
+                        catch
+                        {
+                            //ignore
+                        }
+                    }
+                }
+            }
+        }
+
+        private void MenuItem_Download_Click(object sender, RoutedEventArgs e)
+        {
+            downloadCmd();
+        }
+
+        private void downloadCmd()
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.FileName = selection.FileHeader.NamePlusExtension;
+            if (sfd.ShowDialog().Value)
+            {
+                File.WriteAllBytes(sfd.FileName, fsctrl.readFile(selection.FileHeader));
+            }
+        }
+
+        private void MenuItem_File_Expand(object sender, RoutedEventArgs e)
+        {
+            openItem.IsEnabled = deleteItem.IsEnabled = copyItem.IsEnabled = cutItem.IsEnabled = propertiesItem.IsEnabled = selection != null;
+            pasteItem.IsEnabled = bufferFH != null;
+            downloadItem.IsEnabled = selection != null && !selection.FileHeader.IsDirectory;
+
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

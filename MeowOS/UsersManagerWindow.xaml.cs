@@ -81,8 +81,7 @@ namespace MeowOS
         {
             (sender as Expander).Height = 25;
         }
-
-        //TODO 25.11: запретить удалять первые uid и gid, запретить делать первый uid USER'ом, запретить менять группу первого uid
+        
         private void addGroupBtn_Click(object sender, RoutedEventArgs e)
         {
             GroupInfo gi = new GroupInfo((ushort)(groups.Count + 1), "Новаягруппа");

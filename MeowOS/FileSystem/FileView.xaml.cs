@@ -15,38 +15,27 @@ using System.Windows.Shapes;
 
 namespace MeowOS.FileSystem
 {
-    //TODO 19.11: обеспечить управление с клавиатуры
-    //            добавить контекстное меню
     public partial class FileView : UserControl
     {
         private static readonly BitmapImage fileIcon = new BitmapImage(new Uri("pack://siteoforigin:,,,/Resources/file.png"));
         private static readonly BitmapImage folderIcon = new BitmapImage(new Uri("pack://siteoforigin:,,,/Resources/folder.png"));
-        private static readonly Brush selectionBrush = new SolidColorBrush(Color.FromArgb(150, 50, 50, 200));
-        public static FileView selection;
+        public static readonly Brush selectionBrush = new SolidColorBrush(Color.FromArgb(150, 50, 50, 200));
 
-        private FileHeader fh;
-        public FileHeader FileHeader => fh;
+        private FileHeader fileHeader;
+        public FileHeader FileHeader => fileHeader;
 
-        public FileView(FileHeader fh)
+        public FileView(FileHeader fileHeader)
         {
-            this.fh = fh;
+            this.fileHeader = fileHeader;
             InitializeComponent();
             refresh();
         }
 
-        public void onLMBDown(object sender, MouseButtonEventArgs e)
-        {
-            if (selection != null)
-                selection.panel.Background = Brushes.Transparent;
-            selection = this;
-            panel.Background = selectionBrush;
-        }
-
         public void refresh()
         {
-            iconImg.Source = fh.IsDirectory ? folderIcon : fileIcon;
-            iconImg.Opacity = fh.IsHidden ? 0.25 : 1;
-            nameLabel.Content = fh.NamePlusExtension;
+            iconImg.Source = fileHeader.IsDirectory ? folderIcon : fileIcon;
+            iconImg.Opacity = fileHeader.IsHidden ? 0.25 : 1;
+            nameLabel.Content = fileHeader.NamePlusExtension;
         }
     }
 }
