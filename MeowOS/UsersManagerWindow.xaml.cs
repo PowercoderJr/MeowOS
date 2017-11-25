@@ -77,6 +77,11 @@ namespace MeowOS
             (sender as Expander).Height = 140;
         }
 
+        private void Expander_Collapsed(object sender, RoutedEventArgs e)
+        {
+            (sender as Expander).Height = 25;
+        }
+
         //TODO 25.11: запретить удалять первые uid и gid, запретить делать первый uid USER'ом, запретить менять группу первого uid
         private void addGroupBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -86,7 +91,7 @@ namespace MeowOS
             {
                 string newName = egw.nameEdit.Text;
                 if (groups.Find(item => item.Name.Equals(newName)) != null)
-                    MessageBox.Show("Группа с таким названием уже существует", "Ошибка");
+                    MessageBox.Show("Группа с таким названием уже существует", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 else
                 {
                     gi.Name = newName;
@@ -105,7 +110,7 @@ namespace MeowOS
                 string newName = egw.nameEdit.Text;
                 List<GroupInfo> namesakes = groups.FindAll(item => item.Name.Equals(newName));
                 if (namesakes.Count > 1 || namesakes.Count == 1 && namesakes[0].Id != (groupsListView.SelectedItem as GroupInfo).Id)
-                    MessageBox.Show("Группа с таким названием уже существует", "Ошибка");
+                    MessageBox.Show("Группа с таким названием уже существует", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 else
                 {
                     int index = groupsListView.SelectedIndex;
@@ -125,7 +130,7 @@ namespace MeowOS
         {
             if (MessageBox.Show("Вы действительно хотите удалить группу \"" + (groupsListView.SelectedItem as GroupInfo).Name + 
                 "\"?\r\nЕсли в системе есть пользователи, принадлежащие этой группе, они будут перемещены в группу \"" +
-                groups[0].Name + "\" (id=1)", "Подтвердите действие", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                groups[0].Name + "\" (id=1)", "Подтвердите действие", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 int index = groupsListView.SelectedIndex;
                 ushort gid = (groupsListView.SelectedItem as GroupInfo).Id;
@@ -154,7 +159,7 @@ namespace MeowOS
             {
                 string newLogin = euw.loginEdit.Text;
                 if (users.Find(item => item.Login.Equals(newLogin)) != null)
-                    MessageBox.Show("Пользователь с таким логином уже существует", "Ошибка");
+                    MessageBox.Show("Пользователь с таким логином уже существует", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 else
                 {
                     SHA1 sha = SHA1.Create();
@@ -174,12 +179,17 @@ namespace MeowOS
         {
             UserInfo ui = usersListView.SelectedItem as UserInfo;
             EditUserWindow euw = new EditUserWindow(ui, groups.FindAll(item => item.Name[0] != UsefulThings.DELETED_MARK));
+            if (ui.Uid == 1)
+            {
+                euw.groupCB.IsEnabled = false;
+                euw.roleCB.IsEnabled = false;
+            }
             if (euw.ShowDialog().Value)
             {
                 string newLogin = euw.loginEdit.Text;
                 List<UserInfo> namesakes = users.FindAll(item => item.Login.Equals(newLogin));
                 if (namesakes.Count > 1 || namesakes.Count == 1 && namesakes[0].Uid != (usersListView.SelectedItem as UserInfo).Uid)
-                    MessageBox.Show("Группа с таким названием уже существует", "Ошибка");
+                    MessageBox.Show("Пользователь с таким логином уже существует", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 else
                 {
                     int index = usersListView.SelectedIndex;
@@ -198,7 +208,8 @@ namespace MeowOS
 
         private void deleteUserBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (MessageBox.Show("Вы действительно хотите удалить пользователя \"" + (usersListView.SelectedItem as UserInfo).Login + "\"?", "Подтвердите действие", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (MessageBox.Show("Вы действительно хотите удалить пользователя \"" + (usersListView.SelectedItem as UserInfo).Login +
+                "\"?", "Подтвердите действие", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 int index = usersListView.SelectedIndex;
                 int uid = (usersListView.SelectedItem as UserInfo).Uid;
@@ -207,19 +218,20 @@ namespace MeowOS
             }
         }
 
-        private void Expander_Collapsed(object sender, RoutedEventArgs e)
-        {
-            (sender as Expander).Height = 25;
-        }
-
         private void usersListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            editUserBtn.IsEnabled = deleteUserBtn.IsEnabled = usersListView.SelectedItem != null;
+            UserInfo item = usersListView.SelectedItem as UserInfo;
+            editUserBtn.IsEnabled = deleteUserBtn.IsEnabled = item != null;
+            if (item != null && item.Uid == 1)
+                deleteUserBtn.IsEnabled = false;
         }
 
         private void groupsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            editGroupBtn.IsEnabled = deleteGroupBtn.IsEnabled = groupsListView.SelectedItem != null;
+            GroupInfo item = groupsListView.SelectedItem as GroupInfo;
+            editGroupBtn.IsEnabled = deleteGroupBtn.IsEnabled = item != null;
+            if (item != null && item.Id == 1)
+                deleteGroupBtn.IsEnabled = false;
         }
 
         private void Window_Closed(object sender, EventArgs e)

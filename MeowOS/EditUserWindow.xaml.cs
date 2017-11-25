@@ -19,6 +19,7 @@ namespace MeowOS
             loginEdit.Text = ui.Login;
             groupCB.SelectedIndex = groups.FindIndex(item => item.Name.Equals(ui.Group));
             roleCB.SelectedIndex = (int)(ui.Role);
+            loginEdit.SelectAll();
         }
 
         private void changePassChbChanged(object sender, RoutedEventArgs e)
@@ -29,7 +30,7 @@ namespace MeowOS
         private void okClick(object sender, RoutedEventArgs e)
         {
             if (changePassChb.IsChecked.Value && !pass1Edit.Password.Equals(pass2Edit.Password))
-                MessageBox.Show("Новый пароль и подтверждение пароля не совпадают", "Ошибка");
+                MessageBox.Show("Новый пароль и подтверждение пароля не совпадают", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             else
                 DialogResult = true;
         }

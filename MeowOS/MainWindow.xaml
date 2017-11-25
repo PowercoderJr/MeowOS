@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MeowOS"
         mc:Ignorable="d"
-        Title="MeowOS" Height="500" Width="750">
+        Title="MeowOS" Height="500" Width="750"
+        Closing="Window_Closing">
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <Menu Height="25" VerticalAlignment="Top" HorizontalAlignment="Stretch">
             <MenuItem Header="Система">

@@ -24,6 +24,7 @@ namespace MeowOS
         {
             InitializeComponent();
             nameEdit.Text = gi.Name;
+            nameEdit.SelectAll();
         }
 
         private void nameEdit_TextChanged(object sender, TextChangedEventArgs e)

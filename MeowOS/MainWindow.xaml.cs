@@ -1,4 +1,5 @@
 ﻿using MeowOS.FileSystem;
+using MeowOS.FileSystem.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +26,8 @@ namespace MeowOS
         private FileSystemController fsctrl;
         private UserInfo.Roles role;
         private byte[] bufferFH, bufferData;
+        private string bufferRestorePath;
+        private delegate void OperationOnSelection();
 
         public MainWindow(string path, UserInfo.Roles role)
         {
@@ -43,6 +46,7 @@ namespace MeowOS
             this.role = role;
             bufferFH = null;
             bufferData = null;
+            bufferRestorePath = null;
             Title = "MeowOS - " + Session.userInfo.Login;
             //TODO 18.11: менять функционал для админа/пользователя
         }
@@ -71,7 +75,7 @@ namespace MeowOS
             }
             catch (Exception e)
             {
-                MessageBox.Show(e.Message, "Ошибка");
+                MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 openDirectory(fsctrl.CurrDir);
             }
         }
@@ -171,19 +175,26 @@ namespace MeowOS
                 fh.Name = "newdir";
                 fh.Extension = "";
             }
-            fsctrl.writeFile(fsctrl.CurrDir, fh, null);
-            FileView fv = addFileView(fh);
-            fv.onLMBDown(fv, null);
-            propertiesCmd();
-        }
 
-        //TODO 22.11: разобраться с повторным кодом (проверки MenuItem_..._Click)
+            FilePropertiesWindow fpw = new FilePropertiesWindow(fh);
+            if (fpw.ShowDialog().Value)
+            {
+                try
+                {
+                    fsctrl.writeFile(fsctrl.CurrDir, fh, null);
+                    FileView fv = addFileView(fh);
+                    fv.onLMBDown(fv, null);
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+        
         private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
         {
-            if (FileView.selection != null)
-                openCmd();
-            else
-                MessageBox.Show("Нет выделения", "Ошибка");
+            operationOnSelection(openCmd);
         }
 
         private void openCmd()
@@ -193,10 +204,7 @@ namespace MeowOS
 
         private void MenuItem_Delete_Click(object sender, RoutedEventArgs e)
         {
-            if (FileView.selection != null)
-                deleteCmd();
-            else
-                MessageBox.Show("Нет выделения", "Ошибка");
+            operationOnSelection(deleteCmd);
         }
 
         private void deleteCmd()
@@ -208,10 +216,7 @@ namespace MeowOS
 
         private void MenuItem_Copy_Click(object sender, RoutedEventArgs e)
         {
-            if (FileView.selection != null)
-                copyCmd();
-            else
-                MessageBox.Show("Нет выделения", "Ошибка");
+            operationOnSelection(copyCmd);
         }
 
         private void copyCmd()
@@ -219,20 +224,19 @@ namespace MeowOS
             //TODO 22.11: копировать также вложенные файлы
             bufferFH = FileView.selection.FileHeader.toByteArray(false);
             bufferData = fsctrl.readFile(FileView.selection.FileHeader);
+            bufferRestorePath = null;
         }
 
         private void MenuItem_Cut_Click(object sender, RoutedEventArgs e)
         {
-            if (FileView.selection != null)
-                cutCmd();
-            else
-                MessageBox.Show("Нет выделения", "Ошибка");
+            operationOnSelection(cutCmd);
         }
 
         private void cutCmd()
         {
             copyCmd();
             deleteCmd();
+            bufferRestorePath = fsctrl.CurrDir;
         }
 
         private void MenuItem_Paste_Click(object sender, RoutedEventArgs e)
@@ -240,28 +244,48 @@ namespace MeowOS
             if (bufferFH != null && bufferData != null)
                 pasteCmd();
             else
-                MessageBox.Show("В буфере нет информации", "Ошибка");
+                MessageBox.Show("В буфере нет информации", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         private void pasteCmd()
         {
-            FileHeader fh = new FileHeader(bufferFH);
-            fsctrl.writeFile(fsctrl.CurrDir, fh, bufferData);
-            FileView fv = addFileView(fh);
-            if (fv != null)
-                fv.onLMBDown(fv, null);
-            bufferFH = null;
-            bufferData = null;
+            try
+            {
+                FileHeader fh = new FileHeader(bufferFH);
+                fsctrl.writeFile(fsctrl.CurrDir, fh, bufferData);
+                FileView fv = addFileView(fh);
+                if (fv != null)
+                    fv.onLMBDown(fv, null);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                if (e is FileAlreadyExistException && bufferRestorePath != null)
+                {
+                    try
+                    {
+                        FileHeader fh = new FileHeader(bufferFH);
+                        fsctrl.writeFile(bufferRestorePath, fh, bufferData);
+                    }
+                    catch
+                    {
+                        //ignore
+                    }
+                }
+            }
+            finally
+            {
+                bufferFH = null;
+                bufferData = null;
+                bufferRestorePath = null;
+            }
         }
 
         private void MenuItem_Properties_Click(object sender, RoutedEventArgs e)
         {
-            if (FileView.selection != null)
-                propertiesCmd();
-            else
-                MessageBox.Show("Нет выделения", "Ошибка");
+            operationOnSelection(propertiesCmd);
         }
-
+        
         private void propertiesCmd()
         {
             int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + FileView.selection.FileHeader.NamePlusExtension);
@@ -276,6 +300,20 @@ namespace MeowOS
         private void showHiddenChb_Changed(object sender, RoutedEventArgs e)
         {
             openDirectory(fsctrl.CurrDir);
+        }
+
+        private void operationOnSelection(OperationOnSelection operation)
+        {
+            if (FileView.selection != null)
+                operation(); 
+            else
+                MessageBox.Show("Нет выделения", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            foreach (Window window in OwnedWindows)
+                window.Close();
         }
     }
 }

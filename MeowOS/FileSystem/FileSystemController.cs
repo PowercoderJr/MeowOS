@@ -88,7 +88,7 @@ namespace MeowOS.FileSystem
                 "1" + UsefulThings.USERDATA_SEPARATOR + 
                 (int)UserInfo.Roles.ADMIN));
 
-            FileHeader justFile = new FileHeader("justFile", "txt", 0, 1, 1);
+            /*FileHeader justFile = new FileHeader("justFile", "txt", 0, 1, 1);
             writeFile("/", justFile, null);
             FileHeader kek1 = new FileHeader("kek1", "", (byte)(FileHeader.FlagsList.FL_DIRECTORY), 1, 1);
             writeFile("/", kek1, null);
@@ -100,7 +100,7 @@ namespace MeowOS.FileSystem
             writeFile("/kek1/kek2/", kek3, UsefulThings.ENCODING.GetBytes("Mama ama kek3.aza!"));
             FileHeader kek4 = new FileHeader("kek4", "aza", 0, 1, 1);
             writeFile("/kek1/kek2/", kek4, UsefulThings.ENCODING.GetBytes("Mama ama kek4.aza!"));
-            deleteFile("/kek1/kek2/", kek3);
+            deleteFile("/kek1/kek2/", kek3);*/
         }
 
         public void openSpace(string path)
@@ -151,6 +151,11 @@ namespace MeowOS.FileSystem
         /// <param name="data">Содержимое файла</param>
         public void writeFile(string path, FileHeader fileHeader, byte[] data)
         {
+            path = UsefulThings.clearExcessSeparators(path);
+            string checkFilename = path + "/" + fileHeader.NamePlusExtension;
+            if (getFileHeader(checkFilename) != null)
+                throw new FileAlreadyExistException(checkFilename, fileHeader.IsDirectory);
+
             writeArea(Areas.FAT2);
             ushort firstCluster = fat.getFreeClusterIndex();
             fileHeader.FirstCluster = firstCluster;
@@ -161,7 +166,6 @@ namespace MeowOS.FileSystem
 
             //Запись заголовка
             //TODO 15.11: проверить, что такого файла ещё нет
-            path = UsefulThings.clearExcessSeparators(path);
             int posToWrite;
             if (path == null || path.Length == 0)
             {
@@ -334,6 +338,9 @@ namespace MeowOS.FileSystem
         public FileHeader getFileHeader(string path)
         {
             long offset = getFileHeaderOffset(path);
+            if (offset == -1)
+                return null;
+
             br.BaseStream.Seek(offset, SeekOrigin.Begin);
             FileHeader fh = new FileHeader();
             fh.fromByteStream(br.BaseStream);
