@@ -54,6 +54,8 @@ namespace MeowOS
                 if (ui.Login[0] != UsefulThings.DELETED_MARK)
                     usersListView.Items.Add(ui);
             }
+
+            addUserBtn.IsEnabled = addGroupBtn.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
         }
 
         private void reloadGroups()
@@ -121,6 +123,9 @@ namespace MeowOS
                         if (ui.Gid == gi.Id)
                             ui.Group = gi.Name;
                     reloadUsers();
+
+                    if (Session.userInfo.Gid == gi.Id )
+                        Session.userInfo.Group = gi.Name;
                 }
             }
         }
@@ -129,7 +134,8 @@ namespace MeowOS
         {
             if (MessageBox.Show("Вы действительно хотите удалить группу \"" + (groupsListView.SelectedItem as GroupInfo).Name + 
                 "\"?\r\nЕсли в системе есть пользователи, принадлежащие этой группе, они будут перемещены в группу \"" +
-                groups[0].Name + "\" (id=1)", "Подтвердите действие", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                groups[0].Name + "\" (id=1). При этом все файлы на диске сохранят прежнее значение GID владельца.", "Подтвердите действие",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 int index = groupsListView.SelectedIndex;
                 ushort gid = (groupsListView.SelectedItem as GroupInfo).Id;
@@ -144,6 +150,11 @@ namespace MeowOS
                         ui.Group = groups[0].Name;
                     }
                     reloadUsers();
+                }
+                if (Session.userInfo.Gid == gid)
+                {
+                    Session.userInfo.Gid = 1;
+                    Session.userInfo.Group = groups[0].Name;
                 }
             }
         }
@@ -178,7 +189,7 @@ namespace MeowOS
         {
             UserInfo ui = usersListView.SelectedItem as UserInfo;
             EditUserWindow euw = new EditUserWindow(ui, groups.FindAll(item => item.Name[0] != UsefulThings.DELETED_MARK));
-            if (ui.Uid == 1)
+            if (ui.Uid == 1 || Session.userInfo.Role == UserInfo.Roles.USER)
             {
                 euw.groupCB.IsEnabled = false;
                 euw.roleCB.IsEnabled = false;
@@ -191,6 +202,7 @@ namespace MeowOS
                     MessageBox.Show("Пользователь с таким логином уже существует", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 else
                 {
+                    //TODO 26.11: запросить старый пароль, если изменения внёс USER
                     int index = usersListView.SelectedIndex;
                     SHA1 sha = SHA1.Create();
                     ui.Login = newLogin;
@@ -201,6 +213,9 @@ namespace MeowOS
                     ui.Role = (UserInfo.Roles)Enum.Parse(typeof(UserInfo.Roles), euw.roleCB.SelectedItem.ToString());
                     reloadUsers();
                     usersListView.SelectedIndex = index;
+
+                    if (Session.userInfo.Uid == ui.Uid)
+                        Session.userInfo = new UserInfo(ui);
                 }
             }
         }
@@ -220,17 +235,27 @@ namespace MeowOS
         private void usersListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             UserInfo item = usersListView.SelectedItem as UserInfo;
-            editUserBtn.IsEnabled = deleteUserBtn.IsEnabled = item != null;
-            if (item != null && item.Uid == 1)
-                deleteUserBtn.IsEnabled = false;
+            if (Session.userInfo.Role == UserInfo.Roles.ADMIN)
+            {
+                editUserBtn.IsEnabled = deleteUserBtn.IsEnabled = item != null;
+                if (item != null && (item.Uid == 1 || item.Uid == Session.userInfo.Uid))
+                    deleteUserBtn.IsEnabled = false;
+            }
+            else
+            {
+                editUserBtn.IsEnabled = item != null && item.Uid == Session.userInfo.Uid;
+            }
         }
 
         private void groupsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            GroupInfo item = groupsListView.SelectedItem as GroupInfo;
-            editGroupBtn.IsEnabled = deleteGroupBtn.IsEnabled = item != null;
-            if (item != null && item.Id == 1)
-                deleteGroupBtn.IsEnabled = false;
+            if (Session.userInfo.Role == UserInfo.Roles.ADMIN)
+            {
+                GroupInfo item = groupsListView.SelectedItem as GroupInfo;
+                editGroupBtn.IsEnabled = deleteGroupBtn.IsEnabled = item != null;
+                if (item != null && item.Id == 1)
+                    deleteGroupBtn.IsEnabled = false;
+            }
         }
 
         private void Window_Closed(object sender, EventArgs e)

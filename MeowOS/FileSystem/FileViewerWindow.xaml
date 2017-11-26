@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MeowOS"
         mc:Ignorable="d"
-        Title="FileViewerWindow" Height="400" Width="500">
+        Title="Просмотр файла" Height="400" Width="500">
     <DockPanel>
         <TextBox Name="textField" Margin="10" TextWrapping="Wrap" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
     </DockPanel>

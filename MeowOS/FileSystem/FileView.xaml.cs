@@ -35,7 +35,7 @@ namespace MeowOS.FileSystem
         {
             iconImg.Source = fileHeader.IsDirectory ? folderIcon : fileIcon;
             iconImg.Opacity = fileHeader.IsHidden ? 0.25 : 1;
-            nameLabel.Content = fileHeader.NamePlusExtension;
+            nameLabel.Content = fileHeader.NamePlusExtensionWithoutZeros;
         }
     }
 }

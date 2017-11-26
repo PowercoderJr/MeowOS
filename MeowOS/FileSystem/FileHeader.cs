@@ -36,7 +36,8 @@ namespace MeowOS.FileSystem
         }
         public string ExtensionWithoutZeros => UsefulThings.truncateZeros(extension);
 
-        public string NamePlusExtension => IsDirectory ? NameWithoutZeros : NameWithoutZeros + "." + ExtensionWithoutZeros;
+        public string NamePlusExtensionWithoutZeros => IsDirectory ? NameWithoutZeros : NameWithoutZeros + "." + ExtensionWithoutZeros;
+        public string NamePlusExtension => IsDirectory ? Name : Name + "." + Extension;
 
         //Размер - 4 б
         private uint size;

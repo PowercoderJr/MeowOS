@@ -33,7 +33,7 @@
                 <MenuItem Name="downloadItem" Header="Выгрузить в ОС..." Click="MenuItem_Download_Click"/>
             </MenuItem>
             <MenuItem Header="Проводник">
-                <CheckBox Content="Показывать скрытые файлы" Name="showHiddenChb" IsChecked="False" Checked="showHiddenChb_Changed" Unchecked="showHiddenChb_Changed"/>
+                <CheckBox Name="showHiddenChb" Content="Показывать скрытые файлы" IsChecked="False" Checked="showHiddenChb_Changed" Unchecked="showHiddenChb_Changed"/>
             </MenuItem>
         </Menu>
         <local:AutoGreyableImage x:Name="backImg" HorizontalAlignment="Left" Height="40" Margin="0,25,0,0" VerticalAlignment="Top" Width="40" MouseLeftButtonUp="onBackLMBUp" Source="pack://siteoforigin:,,,/Resources/back.png" Cursor="Hand"/>

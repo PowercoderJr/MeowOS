@@ -73,7 +73,7 @@
       <DependentUpon>EditUserWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="FileSystem\Exceptions\FileAlreadyExistException.cs" />
-    <Compile Include="FileViewerWindow.xaml.cs">
+    <Compile Include="FileSystem\FileViewerWindow.xaml.cs">
       <DependentUpon>FileViewerWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UsersManagerWindow.xaml.cs">
@@ -103,7 +103,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="FileViewerWindow.xaml">
+    <Page Include="FileSystem\FileViewerWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

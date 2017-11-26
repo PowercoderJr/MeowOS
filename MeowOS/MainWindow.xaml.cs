@@ -50,7 +50,9 @@ namespace MeowOS
             bufferData = null;
             bufferRestorePath = null;
             Title = "MeowOS - " + Session.userInfo.Login;
+
             //TODO 18.11: менять функционал для админа/пользователя
+            showHiddenChb.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
         }
 
         private void openDirectory(string path)
@@ -116,7 +118,9 @@ namespace MeowOS
             }
             else
             {
-                new FileViewerWindow(UsefulThings.ENCODING.GetString(fsctrl.readFile(senderFV.FileHeader))).ShowDialog();
+                FileViewerWindow fvw = new FileViewerWindow(UsefulThings.ENCODING.GetString(fsctrl.readFile(senderFV.FileHeader)));
+                fvw.Title = senderFV.FileHeader.NamePlusExtensionWithoutZeros;
+                fvw.ShowDialog();
             }
         }
 
@@ -149,6 +153,8 @@ namespace MeowOS
                     //fsctrl.deleteFile("/", groupsHeader);
                     fsctrl.rewriteFile("/", groupsHeader, umw.GroupsData);
                 }
+
+                Title = "MeowOS - " + Session.userInfo.Login;
             }
             catch (Exception e)
             {
@@ -240,7 +246,12 @@ namespace MeowOS
 
         private void MenuItem_Delete_Click(object sender, RoutedEventArgs e)
         {
-            deleteCmd();
+            if (MessageBox.Show("Вы действительно хотите удалить " + (selection.FileHeader.IsDirectory ? "директорию" : "файл")
+                + " \"" + fsctrl.CurrDir + "/" + selection.FileHeader.NamePlusExtensionWithoutZeros + "\"?", "Подтвердите действие",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                deleteCmd();
+            }
         }
 
         private void deleteCmd()
@@ -345,7 +356,7 @@ namespace MeowOS
         
         private void propertiesCmd()
         {
-            int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + selection.FileHeader.NamePlusExtension);
+            int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + selection.FileHeader.NamePlusExtensionWithoutZeros);
             FilePropertiesWindow fpw = new FilePropertiesWindow(selection.FileHeader);
             if (fpw.ShowDialog().Value)
             {
@@ -406,7 +417,7 @@ namespace MeowOS
         private void downloadCmd()
         {
             SaveFileDialog sfd = new SaveFileDialog();
-            sfd.FileName = selection.FileHeader.NamePlusExtension;
+            sfd.FileName = selection.FileHeader.NamePlusExtensionWithoutZeros;
             if (sfd.ShowDialog().Value)
             {
                 File.WriteAllBytes(sfd.FileName, fsctrl.readFile(selection.FileHeader));
@@ -418,7 +429,6 @@ namespace MeowOS
             openItem.IsEnabled = deleteItem.IsEnabled = copyItem.IsEnabled = cutItem.IsEnabled = propertiesItem.IsEnabled = selection != null;
             pasteItem.IsEnabled = bufferFH != null;
             downloadItem.IsEnabled = selection != null && !selection.FileHeader.IsDirectory;
-
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

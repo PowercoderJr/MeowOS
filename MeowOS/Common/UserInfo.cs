@@ -47,6 +47,16 @@ namespace MeowOS
             set => role = value;
         }
 
+        public UserInfo (UserInfo source)
+        {
+            this.uid = source.uid;
+            this.login = source.login;
+            this.digest = source.digest;
+            this.gid = source.gid;
+            this.group = source.group;
+            this.role = source.role;
+        }
+
         public UserInfo(ushort uid, string login, ushort gid, string group, Roles role)
         {
             this.uid = uid;

@@ -38,8 +38,7 @@ namespace MeowOS.FileSystem
             get { return rootDir; }
             set { rootDir = value; }
         }
-
-
+        
         private string currDir;
         public string CurrDir
         {
@@ -152,7 +151,7 @@ namespace MeowOS.FileSystem
         public void writeFile(string path, FileHeader fileHeader, byte[] data)
         {
             path = UsefulThings.clearExcessSeparators(path);
-            string checkFilename = path + "/" + fileHeader.NamePlusExtension;
+            string checkFilename = path + "/" + fileHeader.NamePlusExtensionWithoutZeros;
             if (getFileHeader(checkFilename) != null)
                 throw new FileAlreadyExistException(checkFilename, fileHeader.IsDirectory);
 
@@ -286,7 +285,7 @@ namespace MeowOS.FileSystem
         public void rewriteFile(string path, FileHeader fileHeader, byte[] data)
         {
             byte[] buf = null;
-            if (getFileHeader(path + fileHeader.NamePlusExtension) != null)
+            if (getFileHeader(path + fileHeader.NamePlusExtensionWithoutZeros) != null)
             {
                 buf = readFile(fileHeader);
                 deleteFile(path, fileHeader);
@@ -446,7 +445,7 @@ namespace MeowOS.FileSystem
                     do
                     {
                         fh.fromByteStream(br.BaseStream);
-                        success = fh.Name.Equals(filename) && fh.Extension.Equals(extension); //Успех ли, если найденный файл - каталог? Пока закомментировано - да. && !fh.isDirectory;
+                        success = fh.Name.Equals(filename) && fh.Extension.Equals(extension);
                         stillWithinCluster = br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize;
                         stillHeadersInFile = fh.Name[0] != '\0';
                     } while (!success && stillWithinCluster && stillHeadersInFile);
