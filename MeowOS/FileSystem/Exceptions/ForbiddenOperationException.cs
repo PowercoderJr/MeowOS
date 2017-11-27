@@ -8,7 +8,7 @@ namespace MeowOS.FileSystem.Exceptions
 {
     class ForbiddenOperationException : Exception
     {
-        public ForbiddenOperationException() : base("Операция запрещена")
+        public ForbiddenOperationException() : base("Операция запрещена.")
         {
 
         }

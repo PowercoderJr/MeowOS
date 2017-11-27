@@ -12,9 +12,21 @@ namespace MeowOS.FileSystem
     public class FileHeader : IConvertibleToBytes, IConvertibleFromBytes
     {
         public enum FlagsList { FL_READONLY = 1 << 0, FL_HIDDEN = 1 << 1, FL_SYSTEM = 1 << 2, FL_DIRECTORY = 1 << 3 };
+        public enum RightsList
+        {
+            OX = 1 << 0,
+            OW = 1 << 1,
+            OR = 1 << 2,
+            GX = 1 << 3,
+            GW = 1 << 4,
+            GR = 1 << 5,
+            UX = 1 << 6,
+            UW = 1 << 7,
+            UR = 1 << 8
+        }
 
         public const int SIZE = 32;
-        public const ushort DEFAULT_RIGHTS = (7 << 6) + (5 << 3) + 5;
+        public const ushort DEFAULT_RIGHTS = (7 << 6) | (5 << 3) | 5;
 
         //Имя файла - 8 б
         public const int NAME_MAX_LENGTH = 8;

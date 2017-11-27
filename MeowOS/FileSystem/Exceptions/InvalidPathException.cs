@@ -8,7 +8,7 @@ namespace MeowOS.FileSystem.Exceptions
 {
     class InvalidPathException : Exception
     {
-        public InvalidPathException() : base("Указанный путь не существует")
+        public InvalidPathException(string path) : base("Путь " + path + " не существует.")
         {
         }
     }

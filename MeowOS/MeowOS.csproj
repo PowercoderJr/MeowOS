@@ -73,6 +73,7 @@
       <DependentUpon>EditUserWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="FileSystem\Exceptions\FileAlreadyExistException.cs" />
+    <Compile Include="FileSystem\Exceptions\HaveNoRightsException.cs" />
     <Compile Include="FileSystem\FileViewerWindow.xaml.cs">
       <DependentUpon>FileViewerWindow.xaml</DependentUpon>
     </Compile>

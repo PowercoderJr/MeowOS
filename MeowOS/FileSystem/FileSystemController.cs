@@ -186,7 +186,7 @@ namespace MeowOS.FileSystem
                 UsefulThings.detachLastFilename(path, out pathWithoutLastDir, out lastDirName);
                 FileHeader lastDirHeader = getFileHeader(path);
                 if (lastDirHeader == null)
-                    throw new InvalidPathException();
+                    throw new InvalidPathException(path);
                 br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
                 //В directory записывается fileHeader (входной параметр), за которым следует содержимое директории, к которой относится lastDirHeader
                 byte[] directory = br.ReadBytes((int)lastDirHeader.Size);
@@ -258,7 +258,7 @@ namespace MeowOS.FileSystem
                 string fullpath = path + '/' + (fileHeader.IsDirectory ? fileHeader.Name : (fileHeader.Name + '.' + fileHeader.Extension));
                 int offset = (int)getFileHeaderOffset(fullpath);
                 if (offset < 0)
-                    throw new InvalidPathException();
+                    throw new InvalidPathException(fullpath);
                 bw.Seek(offset, SeekOrigin.Begin);
                 bw.Write(UsefulThings.DELETED_MARK);
                 if (offset >= superBlock.RootOffset && offset < superBlock.DataOffset)
@@ -378,6 +378,7 @@ namespace MeowOS.FileSystem
         /// <returns>Смещение заголовка файла</returns>
         public long getFileHeaderOffset(string path)
         {
+            //TODO 28.11: реализовать проход по относительному пути, перестроить этот метод с его использованием
             if (UsefulThings.clearExcessSeparators(path).Equals(""))
                 return superBlock.RootOffset;
 
@@ -399,7 +400,7 @@ namespace MeowOS.FileSystem
             filename = UsefulThings.setStringLength(filename, FileHeader.NAME_MAX_LENGTH);
             extension = UsefulThings.setStringLength(extension, FileHeader.EXTENSION_MAX_LENGTH);
 
-            uint currCluster = superBlock.RootOffset / superBlock.ClusterSize, currClusterOffset;
+            uint currCluster = superBlock.RootOffset / superBlock.ClusterSize;//, currClusterOffset;
             int currDirSize = superBlock.RootSize;
             string[] dirs = path.Split(UsefulThings.PATH_SEPARATOR.ToString().ToArray(), StringSplitOptions.RemoveEmptyEntries);
             for (int i = 0; i < dirs.Length; ++i)
@@ -416,12 +417,18 @@ namespace MeowOS.FileSystem
                 //Цикл по блокам файла
                 while (!success && currCluster != FAT.CL_EOF)
                 {
-                    currClusterOffset = currCluster * superBlock.ClusterSize;
+                    uint currClusterOffset = currCluster * superBlock.ClusterSize;//
                     br.BaseStream.Seek(currClusterOffset, SeekOrigin.Begin);
                     //Цикл по записям блока
                     do
                     {
                         fh.fromByteStream(br.BaseStream);
+                        if (!(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
+                            (fh.AccessRights & (ushort)FileHeader.RightsList.OR) > 0 ||
+                            (fh.AccessRights & (ushort)FileHeader.RightsList.GR) > 0 && fh.Gid == Session.userInfo.Gid ||
+                            (fh.AccessRights & (ushort)FileHeader.RightsList.UR) > 0 && fh.Uid == Session.userInfo.Uid))
+                            throw new HaveNoRightsException(HaveNoRightsException.Rights.R_READ);
+
                         success = fh.Name.Equals(dirs[nextDir]) && fh.IsDirectory;
                         stillWithinCluster = br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize;
                         stillHeadersInFile = fh.Name[0] != '\0';
@@ -439,7 +446,7 @@ namespace MeowOS.FileSystem
                 //Цикл по блокам файла
                 while (!success && currCluster != FAT.CL_EOF)
                 {
-                    currClusterOffset = currCluster * superBlock.ClusterSize;
+                    uint currClusterOffset = currCluster * superBlock.ClusterSize;//
                     br.BaseStream.Seek(currClusterOffset, SeekOrigin.Begin);
                     //Цикл по записям блока
                     do
@@ -472,7 +479,7 @@ namespace MeowOS.FileSystem
             {
                 FileHeader fh = getFileHeader(path);
                 if (fh == null)
-                    throw new InvalidPathException();
+                    throw new InvalidPathException(path);
                 return readFile(fh);
             }
         }
@@ -482,7 +489,11 @@ namespace MeowOS.FileSystem
         /// <returns>Содержимое файла</returns>
         public byte[] readFile(FileHeader fh)
         {
-            //TODO 27.11: проверить все методы, где используется Array.Concat - мб стоит заменить на Buffer.BlockCopy
+            if (!(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
+                (fh.AccessRights & (ushort)FileHeader.RightsList.OR) > 0 ||
+                (fh.AccessRights & (ushort)FileHeader.RightsList.GR) > 0 && fh.Gid == Session.userInfo.Gid ||
+                (fh.AccessRights & (ushort)FileHeader.RightsList.UR) > 0 && fh.Uid == Session.userInfo.Uid))
+                throw new HaveNoRightsException(HaveNoRightsException.Rights.R_READ);
             byte[] result = new byte[fh.Size];
             int currCluster = fh.FirstCluster, toRead = (int)fh.Size, toReadOnThisStep;
             while (currCluster != FAT.CL_EOF && toRead > 0)

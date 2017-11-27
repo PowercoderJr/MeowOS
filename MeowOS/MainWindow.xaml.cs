@@ -37,7 +37,7 @@ namespace MeowOS
             {
                 fsctrl = new FileSystemController();
                 fsctrl.openSpace(path);
-                openDirectory(fsctrl.CurrDir);
+                openPath(fsctrl.CurrDir);
             }
             catch
             {
@@ -53,32 +53,41 @@ namespace MeowOS
             showHiddenChb.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
         }
 
-        private void openDirectory(string path)
+        private void openPath(string path)
         {
-            wrapPanel.Children.Clear();
             path = UsefulThings.clearExcessSeparators(path);
-
             try
             {
-                byte[] dir = fsctrl.readFile(path);
-                while (dir.Length > 0)
+                FileHeader fh = path.Length > 0 ? fsctrl.getFileHeader(path) : null;
+                if (fh == null || fh.IsDirectory)
                 {
-                    FileHeader fh = new FileHeader(dir);
-                    addFileView(fh);
-                    dir = dir.Skip(FileHeader.SIZE).ToArray();
+                    byte[] dir = fsctrl.readFile(path);
+                    wrapPanel.Children.Clear();
+                    while (dir.Length > 0)
+                    {
+                        FileHeader currFH = new FileHeader(dir);
+                        addFileView(currFH);
+                        dir = dir.Skip(FileHeader.SIZE).ToArray();
+                    }
+                    fsctrl.CurrDir = path;
+                    addressEdit.Text = fsctrl.CurrDir;
+                    selection = null;
+                    if (fsctrl.CurrDir == "/")
+                        backImg.IsEnabled = false;
+                    else
+                        backImg.IsEnabled = true;
                 }
-                fsctrl.CurrDir = path;
-                addressEdit.Text = fsctrl.CurrDir;
-                selection = null;
-                if (fsctrl.CurrDir == "/")
-                    backImg.IsEnabled = false;
                 else
-                    backImg.IsEnabled = true;
+                {
+                    FileViewerWindow fvw = new FileViewerWindow(UsefulThings.ENCODING.GetString(fsctrl.readFile(fh)));
+                    fvw.Title = fh.NamePlusExtensionWithoutZeros;
+                    fvw.ShowDialog();
+                }
             }
             catch (Exception e)
             {
                 MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                openDirectory(fsctrl.CurrDir);
+                openPath(fsctrl.CurrDir);
             }
         }
 
@@ -110,23 +119,14 @@ namespace MeowOS
         private void onFileViewDoubleClick(object sender, MouseButtonEventArgs e)
         {
             FileView senderFV = (sender as FileView);
-            if (senderFV.FileHeader.IsDirectory)
-            {
-                openDirectory(fsctrl.CurrDir + "/" + senderFV.FileHeader.NameWithoutZeros);
-            }
-            else
-            {
-                FileViewerWindow fvw = new FileViewerWindow(UsefulThings.ENCODING.GetString(fsctrl.readFile(senderFV.FileHeader)));
-                fvw.Title = senderFV.FileHeader.NamePlusExtensionWithoutZeros;
-                fvw.ShowDialog();
-            }
+            openPath(fsctrl.CurrDir + "/" + senderFV.FileHeader.NamePlusExtensionWithoutZeros);
         }
 
         private void onBackLMBUp(object sender, MouseButtonEventArgs e)
         {
             string newPath, tmp;
             UsefulThings.detachLastFilename(fsctrl.CurrDir, out newPath, out tmp);
-            openDirectory(newPath);
+            openPath(newPath);
         }
 
         private void MenuItem_UsersManager_Click(object sender, RoutedEventArgs ea)
@@ -184,7 +184,7 @@ namespace MeowOS
         {
             if (e.Key == Key.Enter)
             {
-                openDirectory(addressEdit.Text);
+                openPath(addressEdit.Text);
                 addressEdit.SelectionStart = addressEdit.Text.Length;
             }
         }
@@ -365,7 +365,7 @@ namespace MeowOS
 
         private void showHiddenChb_Changed(object sender, RoutedEventArgs e)
         {
-            openDirectory(fsctrl.CurrDir);
+            openPath(fsctrl.CurrDir);
         }
 
         private void MenuItem_Upload_Click(object sender, RoutedEventArgs e)

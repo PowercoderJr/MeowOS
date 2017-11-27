@@ -19,6 +19,7 @@ namespace MeowOS.FileSystem
     /// </summary>
     public partial class FilePropertiesWindow : Window
     {
+        //TODO 28.11: добавить поля UID и GID владельца
         private FileHeader fh;
         public FileHeader FH => fh;
         private CheckBox[] flagsChbs;

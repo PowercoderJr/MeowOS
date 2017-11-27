@@ -8,7 +8,7 @@ namespace MeowOS.FileSystem.Exceptions
 {
     class RootdirOutOfSpaceException : Exception
     {
-        public RootdirOutOfSpaceException() : base("В корневом каталоге нет места")
+        public RootdirOutOfSpaceException() : base("В корневом каталоге нет места.")
         {
 
         }
