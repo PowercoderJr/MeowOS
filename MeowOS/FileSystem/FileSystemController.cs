@@ -482,13 +482,14 @@ namespace MeowOS.FileSystem
         /// <returns>Содержимое файла</returns>
         public byte[] readFile(FileHeader fh)
         {
-            byte[] result = new byte[0];
+            //TODO 27.11: проверить все методы, где используется Array.Concat - мб стоит заменить на Buffer.BlockCopy
+            byte[] result = new byte[fh.Size];
             int currCluster = fh.FirstCluster, toRead = (int)fh.Size, toReadOnThisStep;
             while (currCluster != FAT.CL_EOF && toRead > 0)
             {
                 toReadOnThisStep = Math.Min(superBlock.ClusterSize, toRead);
                 br.BaseStream.Seek(currCluster * superBlock.ClusterSize, SeekOrigin.Begin);
-                result = result.Concat(br.ReadBytes(toReadOnThisStep)).ToArray();
+                Buffer.BlockCopy(br.ReadBytes(toReadOnThisStep), 0, result, (int)fh.Size - toRead, toReadOnThisStep);
                 currCluster = fat.Table[currCluster];
                 toRead -= toReadOnThisStep;
             }

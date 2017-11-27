@@ -95,7 +95,7 @@ namespace MeowOS
                 if (success)
                 {
                     Session.userInfo = userInfo;
-                    MainWindow mw = new MainWindow(dialog.FileName, userInfo.Role);
+                    MainWindow mw = new MainWindow(dialog.FileName);
                     Close();
                     mw.Show();
                 }

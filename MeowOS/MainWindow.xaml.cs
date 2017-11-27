@@ -26,12 +26,11 @@ namespace MeowOS
     public partial class MainWindow : Window
     {
         private FileSystemController fsctrl;
-        private UserInfo.Roles role;
         private byte[] bufferFH, bufferData;
         private string bufferRestorePath;
         private FileView selection;
 
-        public MainWindow(string path, UserInfo.Roles role)
+        public MainWindow(string path)
         {
             InitializeComponent();
             try
@@ -42,10 +41,9 @@ namespace MeowOS
             }
             catch
             {
-                //TODO
-            }
 
-            this.role = role;
+            }
+            
             bufferFH = null;
             bufferData = null;
             bufferRestorePath = null;
