@@ -206,7 +206,7 @@ namespace MeowOS.FileSystem
         public void writeHeader(string path, FileHeader fileHeader)
         {
             string checkFilename = path + "/" + fileHeader.NamePlusExtensionWithoutZeros;
-            if (getFileHeader(checkFilename) != null)
+            if (getFileHeader(checkFilename, false) != null)
                 throw new FileAlreadyExistException(checkFilename, fileHeader.IsDirectory);
 
             int posToWrite;
@@ -229,7 +229,7 @@ namespace MeowOS.FileSystem
             {
                 string pathWithoutLastDir, lastDirName;
                 UsefulThings.detachLastFilename(path, out pathWithoutLastDir, out lastDirName);
-                FileHeader lastDirHeader = getFileHeader(path);
+                FileHeader lastDirHeader = getFileHeader(path, false);
                 if (lastDirHeader == null)
                     throw new InvalidPathException(path);
                 br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
@@ -255,16 +255,24 @@ namespace MeowOS.FileSystem
         /// <param name="path">Путь к директории, где расположен файл</param>
         /// <param name="fileHeader">Заголовок файла</param>
         /// <param name="delHeader">Нужно ли удалять заголовок из директории</param>
-        public void deleteFile(string path, FileHeader fileHeader, bool delHeader = true)
+        public void deleteFile(string path, FileHeader fileHeader, bool isRecursive = true)
         {
-            //TODO 21.11: рекурсивное удаление, если удаляется директория
             int currCluster = fileHeader.FirstCluster;
             if (currCluster < superBlock.DataOffset / superBlock.ClusterSize)
                 throw new ForbiddenOperationException();
+            
+            if (fileHeader.IsDirectory && isRecursive)
+            {
+                byte[] content = readFile(fileHeader, false);
+                for (int offset = 0; offset < content.Length; offset += FileHeader.SIZE)
+                {
+                    byte[] curr = content.Skip(offset).ToArray();
+                    deleteFile(path + "/" + fileHeader.NameWithoutZeros, new FileHeader(curr), true);
+                }
+            }
 
             //Удаление записи из родительской директории
-            if (delHeader)
-                deleteHeader(path, fileHeader);
+            deleteHeader(path, fileHeader);
 
             //Помечание блоков как свободных
             writeArea(Areas.FAT2);
@@ -287,7 +295,7 @@ namespace MeowOS.FileSystem
             path = UsefulThings.clearExcessSeparators(path);
             FileHeader fh = new FileHeader();
             string fullpath = path + '/' + (fileHeader.IsDirectory ? fileHeader.Name : (fileHeader.Name + '.' + fileHeader.Extension));
-            int offset = (int)getFileHeaderOffset(fullpath);
+            int offset = (int)getFileHeaderOffset(fullpath, false);
             if (offset < 0)
                 throw new InvalidPathException(fullpath);
             bw.Seek(offset, SeekOrigin.Begin);
@@ -303,10 +311,10 @@ namespace MeowOS.FileSystem
         public void rewriteFile(string path, FileHeader fileHeader, byte[] data)
         {
             byte[] buf = null;
-            if (getFileHeader(path + fileHeader.NamePlusExtensionWithoutZeros) != null)
+            if (getFileHeader(path + "/" + fileHeader.NamePlusExtensionWithoutZeros, false) != null)
             {
-                buf = readFile(fileHeader);
-                deleteFile(path, fileHeader);
+                buf = readFile(fileHeader, false);
+                deleteFile(path, fileHeader, false);
             }
             try
             {
@@ -314,7 +322,7 @@ namespace MeowOS.FileSystem
             }
             catch (Exception e)
             {
-                deleteFile(path, fileHeader);
+                deleteFile(path, fileHeader, false);
                 if (buf != null)
                 {
                     writeFile(path, fileHeader, buf);
@@ -391,24 +399,24 @@ namespace MeowOS.FileSystem
         /// <summary>Возвращает заголовок файла, расположенного по указанному пути</summary>
         /// <param name="path">Полный путь к файлу</param>
         /// <returns>Заголовок файла</returns>
-        public FileHeader getFileHeader(string path)
+        public FileHeader getFileHeader(string path, bool checkRights)
         {
-            return getFileHeader(getFileHeaderOffset(path));
+            return getFileHeader(getFileHeaderOffset(path, checkRights));
         }
 
         /// <summary>Возвращает заголовок файла с заданным именем в директории по заданному смещению</summary>
         /// <param name="filename">Имя файла с расширением (либо без, если это каталог)</param>
         /// <param name="dirFirstCluster">Начальный блок директории, в которой будет осуществлён поиск</param>
         /// <returns>Заголовок файла</returns>
-        public FileHeader getFileHeader(string filename, uint dirFirstCluster)
+        public FileHeader getFileHeader(string filename, uint dirFirstCluster, bool checkRights)
         {
-            return getFileHeader(getFileHeaderOffset(filename, dirFirstCluster));
+            return getFileHeader(getFileHeaderOffset(filename, dirFirstCluster, checkRights));
         }
 
         /// <summary>Возвращает абсолютное смещение заголовка файла, расположенного по указанному пути</summary>
         /// <param name="path">Полный путь к файлу</param>
         /// <returns>Смещение заголовка файла</returns>
-        public long getFileHeaderOffset(string path)
+        public long getFileHeaderOffset(string path, bool checkRights)
         {
             uint currCluster = superBlock.RootOffset / superBlock.ClusterSize;
             string[] steps = path.Split(UsefulThings.PATH_SEPARATOR.ToString().ToArray(), StringSplitOptions.RemoveEmptyEntries);
@@ -418,7 +426,7 @@ namespace MeowOS.FileSystem
             //Цикл по директориям пути
             while (nextHeaderOffset >= 0 && nextStep < steps.Length)
             {
-                nextHeaderOffset = (int)getFileHeaderOffset(steps[nextStep], currCluster);
+                nextHeaderOffset = (int)getFileHeaderOffset(steps[nextStep], currCluster, checkRights);
                 if (nextHeaderOffset >= 0)
                 {
                     br.BaseStream.Seek(nextHeaderOffset, SeekOrigin.Begin);
@@ -434,7 +442,7 @@ namespace MeowOS.FileSystem
         /// <param name="filename">Имя файла с расширением (либо без, если это каталог)</param>
         /// <param name="dirFirstCluster">Начальный блок директории, в которой будет осуществлён поиск</param>
         /// <returns>Смещение заголовка файла</returns>
-        public long getFileHeaderOffset(string filename, uint dirFirstCluster)
+        public long getFileHeaderOffset(string filename, uint dirFirstCluster, bool checkRights)
         {
             string extension;
             int indexOfDot = filename.IndexOf('.');
@@ -466,7 +474,7 @@ namespace MeowOS.FileSystem
                 do
                 {
                     FileHeader fh = new FileHeader(br.BaseStream);
-                    if (!(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
+                    if (checkRights && !(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
                         (fh.AccessRights & (ushort)FileHeader.RightsList.OR) > 0 ||
                         (fh.AccessRights & (ushort)FileHeader.RightsList.GR) > 0 && fh.Gid == Session.userInfo.Gid ||
                         (fh.AccessRights & (ushort)FileHeader.RightsList.UR) > 0 && fh.Uid == Session.userInfo.Uid))
@@ -490,25 +498,25 @@ namespace MeowOS.FileSystem
         /// <summary>Возвращает содержимое файла, расположенного по указанному пути</summary>
         /// <param name="path">Полный путь к файлу</param>
         /// <returns>Содержимое файла</returns>
-        public byte[] readFile(string path)
+        public byte[] readFile(string path, bool checkRights)
         {
             path = UsefulThings.clearExcessSeparators(path);
 
             if (path.Equals(""))
                 return rootDir.Take(getRootdirFactSize()).ToArray();
 
-            FileHeader fh = getFileHeader(path);
+            FileHeader fh = getFileHeader(path, checkRights);
             if (fh == null)
                 throw new InvalidPathException(path);
-            return readFile(fh);
+            return readFile(fh, checkRights);
         }
 
         /// <summary>Возвращает содержимое файла, к которому относится указанный заголовок</summary>
         /// <param name="fh">Заголовок файла</param>
         /// <returns>Содержимое файла</returns>
-        public byte[] readFile(FileHeader fh)
+        public byte[] readFile(FileHeader fh, bool checkRights)
         {
-            if (!(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
+            if (checkRights && !(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
                 (fh.AccessRights & (ushort)FileHeader.RightsList.OR) > 0 ||
                 (fh.AccessRights & (ushort)FileHeader.RightsList.GR) > 0 && fh.Gid == Session.userInfo.Gid ||
                 (fh.AccessRights & (ushort)FileHeader.RightsList.UR) > 0 && fh.Uid == Session.userInfo.Uid))

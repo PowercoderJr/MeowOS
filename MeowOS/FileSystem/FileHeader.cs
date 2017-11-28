@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace MeowOS.FileSystem
 {
-    public class FileHeader : IConvertibleToBytes, IConvertibleFromBytes
+    public class FileHeader : IConvertibleToBytes, IConvertibleFromBytes, ICloneable
     {
         public enum FlagsList { FL_READONLY = 1 << 0, FL_HIDDEN = 1 << 1, FL_SYSTEM = 1 << 2, FL_DIRECTORY = 1 << 3 };
         public enum RightsList
@@ -301,6 +301,11 @@ namespace MeowOS.FileSystem
                 "\nFirst cluster: " + firstCluster + 
                 "\nChange date: " + chDate + 
                 "\nChange time: " + chTime;
+        }
+
+        public object Clone()
+        {
+            return new FileHeader(toByteArray(false));
         }
     }
 }

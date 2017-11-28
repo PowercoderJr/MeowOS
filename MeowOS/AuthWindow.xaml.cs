@@ -63,7 +63,7 @@ namespace MeowOS
                     {
                         //Открыть
                         fsctrl.openSpace(dialog.FileName);
-                        byte[] users = fsctrl.readFile("/users.sys");
+                        byte[] users = fsctrl.readFile("/users.sys", false);
                         string[] usersStr = UsefulThings.fileFromByteArrToStringArr(users);
                         string[] tokens = { "", "", "", "" }; //0 = login, 1 = digest, 2 = gid, 3 = role
                         ushort uid;
@@ -76,7 +76,7 @@ namespace MeowOS
                         if (success)
                         {
                             --uid;
-                            byte[] groups = fsctrl.readFile("/groups.sys");
+                            byte[] groups = fsctrl.readFile("/groups.sys", false);
                             string[] groupsStr = UsefulThings.fileFromByteArrToStringArr(groups);
                             ushort gid = ushort.Parse(tokens[2]); if (gid > groups.Length) gid = 1;
                             userInfo = new UserInfo(uid, tokens[0], gid, groupsStr[gid - 1], (UserInfo.Roles)Enum.Parse(typeof(UserInfo.Roles), tokens[3]));

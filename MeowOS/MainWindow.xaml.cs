@@ -71,11 +71,11 @@ namespace MeowOS
                 }
                 else if (tmpPathWithoutLast.Equals(fsctrl.CurrDir))
                 {
-                    FileHeader tmpFH = fsctrl.getFileHeader(tmpLast, fsctrl.CurrDirCluster);
+                    FileHeader tmpFH = fsctrl.getFileHeader(tmpLast, fsctrl.CurrDirCluster, true);
                     if (tmpFH == null)
                         throw new InvalidPathException(path);
                     newCluster = tmpFH.FirstCluster;
-                    fh = fsctrl.getFileHeader(tmpLast, fsctrl.CurrDirCluster);
+                    fh = fsctrl.getFileHeader(tmpLast, fsctrl.CurrDirCluster, true);
                 }
                 else
                 {
@@ -83,19 +83,19 @@ namespace MeowOS
                         newCluster = fsctrl.SuperBlock.RootOffset / fsctrl.SuperBlock.ClusterSize;
                     else
                     {
-                        FileHeader tmpFH = fsctrl.getFileHeader(path);
+                        FileHeader tmpFH = fsctrl.getFileHeader(path, true);
                         if (tmpFH == null)
                             throw new InvalidPathException(path);
                         newCluster = tmpFH.FirstCluster;
                     }
-                    fh = fsctrl.getFileHeader(path);
+                    fh = fsctrl.getFileHeader(path, true);
                 }
 
                 if (fh == null)
                     throw new InvalidPathException(path);
                 if (path.Equals("") || fh.IsDirectory)
                 {
-                    byte[] dir = fsctrl.readFile(path);
+                    byte[] dir = fsctrl.readFile(path, true);
                     wrapPanel.Children.Clear();
                     while (dir.Length > 0)
                     {
@@ -114,7 +114,7 @@ namespace MeowOS
                 }
                 else
                 {
-                    FileViewerWindow fvw = new FileViewerWindow(UsefulThings.ENCODING.GetString(fsctrl.readFile(fh)));
+                    FileViewerWindow fvw = new FileViewerWindow(UsefulThings.ENCODING.GetString(fsctrl.readFile(fh, true)));
                     fvw.Title = fh.NamePlusExtensionWithoutZeros;
                     fvw.ShowDialog();
                 }
@@ -166,8 +166,8 @@ namespace MeowOS
 
         private void MenuItem_UsersManager_Click(object sender, RoutedEventArgs ea)
         {
-            byte[] usersData = fsctrl.readFile("/users.sys");
-            byte[] groupsData = fsctrl.readFile("/groups.sys");
+            byte[] usersData = fsctrl.readFile("/users.sys", false);
+            byte[] groupsData = fsctrl.readFile("/groups.sys", false);
             UsersManagerWindow umw = new UsersManagerWindow(usersData, groupsData);
             umw.ShowDialog();
 
@@ -175,14 +175,14 @@ namespace MeowOS
             {
                 if (!umw.UsersData.SequenceEqual(usersData))
                 {
-                    FileHeader usersHeader = fsctrl.getFileHeader("/users.sys");
+                    FileHeader usersHeader = fsctrl.getFileHeader("/users.sys", false);
                     //fsctrl.deleteFile("/", usersHeader);
                     fsctrl.rewriteFile("/", usersHeader, umw.UsersData);
                 }
 
                 if (!umw.GroupsData.SequenceEqual(groupsData))
                 {
-                    FileHeader groupsHeader = fsctrl.getFileHeader("/groups.sys");
+                    FileHeader groupsHeader = fsctrl.getFileHeader("/groups.sys", false);
                     //fsctrl.deleteFile("/", groupsHeader);
                     fsctrl.rewriteFile("/", groupsHeader, umw.GroupsData);
                 }
@@ -302,9 +302,8 @@ namespace MeowOS
         private void copyCmd()
         {
             //TODO 22.11: копировать также вложенные файлы
-            bufferFH = selection.FileHeader.toByteArray(false);
-            bufferData = fsctrl.readFile(selection.FileHeader);
-            bufferRestorePath = null;
+            //QST: может ли юзер без прав чтения копировать?
+            writeToBuffer(selection.FileHeader.toByteArray(false), fsctrl.readFile(selection.FileHeader, false), null);
         }
 
         private void MenuItem_Cut_Click(object sender, RoutedEventArgs e)
@@ -314,9 +313,14 @@ namespace MeowOS
 
         private void cutCmd()
         {
-            bufferFH = selection.FileHeader.toByteArray(false);
-            bufferData = null;
-            bufferRestorePath = fsctrl.CurrDir;
+            writeToBuffer(selection.FileHeader.toByteArray(false), null, fsctrl.CurrDir);
+        }
+
+        private void writeToBuffer(byte[] fh, byte[] data, string restorePath)
+        {
+            bufferFH = fh;
+            bufferData = data;
+            bufferRestorePath = restorePath;
         }
 
         private void MenuItem_Paste_Click(object sender, RoutedEventArgs e)
@@ -358,7 +362,7 @@ namespace MeowOS
             {
                 try
                 {
-                    fsctrl.writeFile(fsctrl.CurrDir, fh, bufferData);
+                    writeToDisk(fsctrl.CurrDir, fh, bufferData);
                     success = true;
                 }
                 catch (Exception e)
@@ -390,6 +394,22 @@ namespace MeowOS
             bufferRestorePath = null;
         }
 
+        private void writeToDisk(string path, FileHeader fh, byte[] data)
+        {
+            if (fh.IsDirectory)
+            {
+                fsctrl.writeFile(path, fh, /*data*/null);
+                //byte[] content = fsctrl.readFile(fh, false);
+                for (int offset = 0; offset < data.Length; offset += FileHeader.SIZE)
+                {
+                    FileHeader curr = new FileHeader(data.Skip(offset).ToArray());
+                    writeToDisk(path + "/" + fh.NameWithoutZeros, curr, fsctrl.readFile(curr, true));
+                }
+            }
+            else
+                fsctrl.writeFile(path, fh, data);
+        }
+
         private void MenuItem_Properties_Click(object sender, RoutedEventArgs e)
         {
             propertiesCmd();
@@ -397,7 +417,7 @@ namespace MeowOS
         
         private void propertiesCmd()
         {
-            int headerOffset = (int)fsctrl.getFileHeaderOffset(selection.FileHeader.NamePlusExtensionWithoutZeros, fsctrl.CurrDirCluster);
+            int headerOffset = (int)fsctrl.getFileHeaderOffset(selection.FileHeader.NamePlusExtensionWithoutZeros, fsctrl.CurrDirCluster, false);
             FilePropertiesWindow fpw = new FilePropertiesWindow(selection.FileHeader);
             if (fpw.ShowDialog().Value)
             {
@@ -461,7 +481,7 @@ namespace MeowOS
             sfd.FileName = selection.FileHeader.NamePlusExtensionWithoutZeros;
             if (sfd.ShowDialog().Value)
             {
-                File.WriteAllBytes(sfd.FileName, fsctrl.readFile(selection.FileHeader));
+                File.WriteAllBytes(sfd.FileName, fsctrl.readFile(selection.FileHeader, true));
             }
         }
 
