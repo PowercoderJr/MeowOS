@@ -157,10 +157,6 @@ namespace MeowOS.FileSystem
         public void writeFile(string path, FileHeader fileHeader, byte[] data)
         {
             path = UsefulThings.clearExcessSeparators(path);
-            string checkFilename = path + "/" + fileHeader.NamePlusExtensionWithoutZeros;
-            if (getFileHeader(checkFilename) != null)
-                throw new FileAlreadyExistException(checkFilename, fileHeader.IsDirectory);
-
             writeArea(Areas.FAT2);
             ushort firstCluster = fat.getFreeClusterIndex();
             fileHeader.FirstCluster = firstCluster;
@@ -170,48 +166,7 @@ namespace MeowOS.FileSystem
                 data = UsefulThings.ENCODING.GetBytes("\0");
 
             //Запись заголовка
-            int posToWrite;
-            if (path == null || path.Length == 0)
-            {
-                posToWrite = 0;
-                while (posToWrite + FileHeader.SIZE <= superBlock.RootSize)
-                {
-                    if (rootDir[posToWrite] == '\0' || rootDir[posToWrite] == UsefulThings.DELETED_MARK)
-                        break;
-                    else
-                        posToWrite += FileHeader.SIZE;
-                }
-                if (posToWrite + FileHeader.SIZE > superBlock.RootSize)
-                    throw new RootdirOutOfSpaceException();
-                rootDir = rootDir.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(rootDir.Skip(posToWrite + FileHeader.SIZE)).ToArray();
-                writeArea(Areas.ROOTDIR);
-            }
-            else
-            {
-                string pathWithoutLastDir, lastDirName;
-                UsefulThings.detachLastFilename(path, out pathWithoutLastDir, out lastDirName);
-                FileHeader lastDirHeader = getFileHeader(path);
-                if (lastDirHeader == null)
-                    throw new InvalidPathException(path);
-                br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
-                //В directory записывается fileHeader (входной параметр), за которым следует содержимое директории, к которой относится lastDirHeader
-                byte[] directory = br.ReadBytes((int)lastDirHeader.Size);
-                posToWrite = 0;
-                while (posToWrite + FileHeader.SIZE <= directory.Length)
-                {
-                    if (directory[posToWrite] == '\0' || directory[posToWrite] == UsefulThings.DELETED_MARK)
-                        break;
-                    else
-                        posToWrite += FileHeader.SIZE;
-                }
-                if (posToWrite + FileHeader.SIZE > superBlock.RootSize)
-                    directory = directory.Concat(fileHeader.toByteArray(false)).ToArray();
-                else
-                    directory = directory.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(directory.Skip(posToWrite + FileHeader.SIZE)).ToArray();
-                
-                //deleteFile(pathWithoutLastDir, lastDirHeader);
-                rewriteFile(pathWithoutLastDir, lastDirHeader, directory);
-            }
+            writeHeader(path, fileHeader);
 
             //Запись данных
             int toWrite = data.Length, toWriteOnThisStep, i = 0;
@@ -243,33 +198,73 @@ namespace MeowOS.FileSystem
             writeArea(Areas.FAT1);
         }
 
+        /// <summary>
+        /// Дописывает заголовок файла в указанную директорию
+        /// </summary>
+        /// <param name="path">Путь к директории, куда следует дописать заголовок</param>
+        /// <param name="fileHeader">Дописываемый заголовок файла</param>
+        public void writeHeader(string path, FileHeader fileHeader)
+        {
+            string checkFilename = path + "/" + fileHeader.NamePlusExtensionWithoutZeros;
+            if (getFileHeader(checkFilename) != null)
+                throw new FileAlreadyExistException(checkFilename, fileHeader.IsDirectory);
+
+            int posToWrite;
+            if (path == null || path.Length == 0)
+            {
+                posToWrite = 0;
+                while (posToWrite + FileHeader.SIZE <= superBlock.RootSize)
+                {
+                    if (rootDir[posToWrite] == '\0' || rootDir[posToWrite] == UsefulThings.DELETED_MARK)
+                        break;
+                    else
+                        posToWrite += FileHeader.SIZE;
+                }
+                if (posToWrite + FileHeader.SIZE > superBlock.RootSize)
+                    throw new RootdirOutOfSpaceException();
+                rootDir = rootDir.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(rootDir.Skip(posToWrite + FileHeader.SIZE)).ToArray();
+                writeArea(Areas.ROOTDIR);
+            }
+            else
+            {
+                string pathWithoutLastDir, lastDirName;
+                UsefulThings.detachLastFilename(path, out pathWithoutLastDir, out lastDirName);
+                FileHeader lastDirHeader = getFileHeader(path);
+                if (lastDirHeader == null)
+                    throw new InvalidPathException(path);
+                br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
+                byte[] directory = br.ReadBytes((int)lastDirHeader.Size);
+                posToWrite = 0;
+                while (posToWrite + FileHeader.SIZE <= directory.Length)
+                {
+                    if (directory[posToWrite] == '\0' || directory[posToWrite] == UsefulThings.DELETED_MARK)
+                        break;
+                    else
+                        posToWrite += FileHeader.SIZE;
+                }
+                if (posToWrite + FileHeader.SIZE > superBlock.RootSize)
+                    directory = directory.Concat(fileHeader.toByteArray(false)).ToArray();
+                else
+                    directory = directory.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(directory.Skip(posToWrite + FileHeader.SIZE)).ToArray();
+                
+                rewriteFile(pathWithoutLastDir, lastDirHeader, directory);
+            }
+        }
+
         /// <summary>Удаляет файл из указанной директории</summary>
         /// <param name="path">Путь к директории, где расположен файл</param>
         /// <param name="fileHeader">Заголовок файла</param>
-        /// <param name="deleteHeader">Нужно ли удалять заголовок из директории</param>
-        public void deleteFile(string path, FileHeader fileHeader, bool deleteHeader = true)
+        /// <param name="delHeader">Нужно ли удалять заголовок из директории</param>
+        public void deleteFile(string path, FileHeader fileHeader, bool delHeader = true)
         {
             //TODO 21.11: рекурсивное удаление, если удаляется директория
             int currCluster = fileHeader.FirstCluster;
             if (currCluster < superBlock.DataOffset / superBlock.ClusterSize)
                 throw new ForbiddenOperationException();
 
-            if (deleteHeader)
-            {
-                //Удаление записи из родительской директории
-                path = UsefulThings.clearExcessSeparators(path);
-                //string pathWithoutLast, last;
-                //UsefulThings.detachLastFilename(path, out pathWithoutLast, out last);
-                FileHeader fh = new FileHeader();
-                string fullpath = path + '/' + (fileHeader.IsDirectory ? fileHeader.Name : (fileHeader.Name + '.' + fileHeader.Extension));
-                int offset = (int)getFileHeaderOffset(fullpath);
-                if (offset < 0)
-                    throw new InvalidPathException(fullpath);
-                bw.Seek(offset, SeekOrigin.Begin);
-                bw.Write(UsefulThings.DELETED_MARK);
-                if (offset >= superBlock.RootOffset && offset < superBlock.DataOffset)
-                    rootDir[offset - superBlock.RootOffset] = (byte)UsefulThings.DELETED_MARK;
-            }
+            //Удаление записи из родительской директории
+            if (delHeader)
+                deleteHeader(path, fileHeader);
 
             //Помечание блоков как свободных
             writeArea(Areas.FAT2);
@@ -283,7 +278,24 @@ namespace MeowOS.FileSystem
             fat.Table[currCluster] = FAT.CL_FREE;
             writeArea(Areas.FAT1);
         }
-        
+
+        /// <summary>Удаляет заголовок файла из указанной директории</summary>
+        /// <param name="path">Путь к директории, где записан заголовок</param>
+        /// <param name="fileHeader">Заголовок файла</param>
+        public void deleteHeader(string path, FileHeader fileHeader)
+        {
+            path = UsefulThings.clearExcessSeparators(path);
+            FileHeader fh = new FileHeader();
+            string fullpath = path + '/' + (fileHeader.IsDirectory ? fileHeader.Name : (fileHeader.Name + '.' + fileHeader.Extension));
+            int offset = (int)getFileHeaderOffset(fullpath);
+            if (offset < 0)
+                throw new InvalidPathException(fullpath);
+            bw.Seek(offset, SeekOrigin.Begin);
+            bw.Write(UsefulThings.DELETED_MARK);
+            if (offset >= superBlock.RootOffset && offset < superBlock.DataOffset)
+                rootDir[offset - superBlock.RootOffset] = (byte)UsefulThings.DELETED_MARK;
+        }
+
         /// <summary>Перезаписывает файл по указанному пути</summary>
         /// <param name="path">Путь к директории, куда следует записать файл</param>
         /// <param name="fileHeader">Заголовок файла</param>

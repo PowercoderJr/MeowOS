@@ -314,14 +314,14 @@ namespace MeowOS
 
         private void cutCmd()
         {
-            copyCmd();
-            deleteCmd();
+            bufferFH = selection.FileHeader.toByteArray(false);
+            bufferData = null;
             bufferRestorePath = fsctrl.CurrDir;
         }
 
         private void MenuItem_Paste_Click(object sender, RoutedEventArgs e)
         {
-            if (bufferFH != null && bufferData != null)
+            if (bufferFH != null)
                 pasteCmd();
             else
                 MessageBox.Show("В буфере нет информации", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -329,57 +329,65 @@ namespace MeowOS
 
         private void pasteCmd()
         {
+            bool success = false;
             FileHeader fh = new FileHeader(bufferFH);
-            try
+            if (bufferRestorePath != null) //вставка вырезанного
             {
-                fsctrl.writeFile(fsctrl.CurrDir, fh, bufferData);
+                try
+                {
+                    fsctrl.writeHeader(fsctrl.CurrDir, fh);
+                    fsctrl.deleteHeader(bufferRestorePath, fh);
+                    success = true;
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    if (!(e is FileAlreadyExistException))
+                        fsctrl.deleteHeader(fsctrl.CurrDir, fh);
+                    try
+                    {
+                        fsctrl.writeHeader(bufferRestorePath, fh);
+                    }
+                    catch
+                    {
+                        //ignore                
+                    }
+                }
+            }
+            else //вставка скопированного
+            {
+                try
+                {
+                    fsctrl.writeFile(fsctrl.CurrDir, fh, bufferData);
+                    success = true;
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    if (e is RootdirOutOfSpaceException || e is DiskOutOfSpaceException)
+                    {
+                        try
+                        {
+                            fsctrl.deleteFile(fsctrl.CurrDir, fh);
+                        }
+                        catch
+                        {
+                            //ignore
+                        }
+                    }
+                }
+            }
+
+            if (success)
+            {
                 FileView fv = addFileView(fh);
                 if (fv != null)
                     onFileViewMouseDown(fv, null);
             }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                if (e is FileAlreadyExistException && bufferRestorePath != null)
-                {
-                    try
-                    {
-                        FileHeader fhRestore = new FileHeader(bufferFH);
-                        fsctrl.writeFile(bufferRestorePath, fhRestore, bufferData);
-                    }
-                    catch (Exception eRestore)
-                    {
-                        if (eRestore is RootdirOutOfSpaceException || eRestore is DiskOutOfSpaceException)
-                        {
-                            try
-                            {
-                                fsctrl.deleteFile(fsctrl.CurrDir, fh);
-                            }
-                            catch
-                            {
-                                //ignore
-                            }
-                        }
-                    }
-                }
-                if (e is RootdirOutOfSpaceException || e is DiskOutOfSpaceException)
-                {
-                    try
-                    {
-                        fsctrl.deleteFile(fsctrl.CurrDir, fh);
-                    }
-                    catch
-                    {
-                        //ignore
-                    }
-                }
-            }
-            finally
-            {
-                bufferFH = null;
-                bufferData = null;
-                bufferRestorePath = null;
-            }
+
+            bufferFH = null;    
+            bufferData = null;
+            bufferRestorePath = null;
         }
 
         private void MenuItem_Properties_Click(object sender, RoutedEventArgs e)
