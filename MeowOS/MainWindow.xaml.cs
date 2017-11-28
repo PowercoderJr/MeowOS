@@ -53,13 +53,47 @@ namespace MeowOS
             showHiddenChb.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
         }
 
-        private void openPath(string path)
+        //private enum PathTypes { PT_ABSOLUTE, PT_RELATIVE };
+        private void openPath(string path/*, PathTypes pathType = PathTypes.PT_ABSOLUTE*/)
         {
             path = UsefulThings.clearExcessSeparators(path);
             try
             {
-                FileHeader fh = path.Length > 0 ? fsctrl.getFileHeader(path) : null;
-                if (fh == null || fh.IsDirectory)
+                path = UsefulThings.clearExcessSeparators(path);
+                string tmpPathWithoutLast, tmpLast;
+                UsefulThings.detachLastFilename(path, out tmpPathWithoutLast, out tmpLast);
+                uint newCluster;
+                FileHeader fh;
+                if (path.Equals(fsctrl.CurrDir))
+                {
+                    newCluster = fsctrl.CurrDirCluster;
+                    fh = new FileHeader("", "", (byte)FileHeader.FlagsList.FL_DIRECTORY, 0, 0); //требуется лишь только, чтобы у заголовка был флаг "директория"
+                }
+                else if (tmpPathWithoutLast.Equals(fsctrl.CurrDir))
+                {
+                    FileHeader tmpFH = fsctrl.getFileHeader(tmpLast, fsctrl.CurrDirCluster);
+                    if (tmpFH == null)
+                        throw new InvalidPathException(path);
+                    newCluster = tmpFH.FirstCluster;
+                    fh = fsctrl.getFileHeader(tmpLast, fsctrl.CurrDirCluster);
+                }
+                else
+                {
+                    if (path.Equals(""))
+                        newCluster = fsctrl.SuperBlock.RootOffset / fsctrl.SuperBlock.ClusterSize;
+                    else
+                    {
+                        FileHeader tmpFH = fsctrl.getFileHeader(path);
+                        if (tmpFH == null)
+                            throw new InvalidPathException(path);
+                        newCluster = tmpFH.FirstCluster;
+                    }
+                    fh = fsctrl.getFileHeader(path);
+                }
+
+                if (fh == null)
+                    throw new InvalidPathException(path);
+                if (path.Equals("") || fh.IsDirectory)
                 {
                     byte[] dir = fsctrl.readFile(path);
                     wrapPanel.Children.Clear();
@@ -70,9 +104,10 @@ namespace MeowOS
                         dir = dir.Skip(FileHeader.SIZE).ToArray();
                     }
                     fsctrl.CurrDir = path;
-                    addressEdit.Text = fsctrl.CurrDir;
+                    fsctrl.CurrDirCluster = newCluster;
+                    addressEdit.Text = fsctrl.CurrDir.Length > 0 ? fsctrl.CurrDir : "/";
                     selection = null;
-                    if (fsctrl.CurrDir == "/")
+                    if (fsctrl.CurrDir.Equals(""))
                         backImg.IsEnabled = false;
                     else
                         backImg.IsEnabled = true;
@@ -354,7 +389,7 @@ namespace MeowOS
         
         private void propertiesCmd()
         {
-            int headerOffset = (int)fsctrl.getFileHeaderOffset(fsctrl.CurrDir + "/" + selection.FileHeader.NamePlusExtensionWithoutZeros);
+            int headerOffset = (int)fsctrl.getFileHeaderOffset(selection.FileHeader.NamePlusExtensionWithoutZeros, fsctrl.CurrDirCluster);
             FilePropertiesWindow fpw = new FilePropertiesWindow(selection.FileHeader);
             if (fpw.ShowDialog().Value)
             {
