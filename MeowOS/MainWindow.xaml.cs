@@ -48,8 +48,7 @@ namespace MeowOS
             bufferData = null;
             bufferRestorePath = null;
             Title = "MeowOS - " + Session.userInfo.Login;
-
-            //TODO 18.11: менять функционал для админа/пользователя
+            
             showHiddenChb.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
         }
 
@@ -226,7 +225,6 @@ namespace MeowOS
 
         private void createCmd(bool isDirectory)
         {
-            //TODO: 22.11: проверить права записи
             FileHeader fh = new FileHeader(Session.userInfo);
             fh.IsDirectory = isDirectory;
             if (isDirectory)
@@ -296,8 +294,6 @@ namespace MeowOS
 
         private void copyCmd()
         {
-            //TODO 22.11: копировать также вложенные файлы
-            //QST: может ли юзер без прав чтения копировать?
             writeToBuffer(selection.FileHeader.toByteArray(false), fsctrl.readFile(selection.FileHeader, false), null);
         }
 
@@ -436,7 +432,6 @@ namespace MeowOS
             OpenFileDialog ofd = new OpenFileDialog();
             if (ofd.ShowDialog().Value)
             {
-                //TODO: 22.11: проверить права записи
                 FileHeader fh = new FileHeader(string.Concat(System.IO.Path.GetFileNameWithoutExtension(ofd.SafeFileName).Where(char.IsLetterOrDigit)),
                     string.Concat(System.IO.Path.GetExtension(ofd.SafeFileName).Where(char.IsLetterOrDigit)), 0,
                     Session.userInfo.Uid, Session.userInfo.Gid);

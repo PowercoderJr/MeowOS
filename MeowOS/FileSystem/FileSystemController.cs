@@ -105,7 +105,7 @@ namespace MeowOS.FileSystem
             FileHeader kek4 = new FileHeader("kek4", "aza", 0, 1, 1);
             writeFile("/kek1/kek2/", kek4, UsefulThings.ENCODING.GetBytes("Mama ama kek4.aza!"));
             deleteFile("/kek1/kek2/", kek3);*/
-            CurrDirCluster = superBlock.RootOffset / superBlock.ClusterSize; //TODO 28.11: проверить все места, где стоит переназначить currDirOffset
+            CurrDirCluster = superBlock.RootOffset / superBlock.ClusterSize;
         }
 
         public void openSpace(string path)
