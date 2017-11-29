@@ -114,9 +114,12 @@ namespace MeowOS
                 }
                 else
                 {
-                    FileViewerWindow fvw = new FileViewerWindow(UsefulThings.ENCODING.GetString(fsctrl.readFile(fh, true)));
+                    FileViewerWindow fvw = new FileViewerWindow(fh, UsefulThings.ENCODING.GetString(fsctrl.readFile(fh, true)));
                     fvw.Title = fh.NamePlusExtensionWithoutZeros;
                     fvw.ShowDialog();
+                    if (fvw.IsChanged && MessageBox.Show("Файл был изменён. Сохранить изменения?", "Подтвердите действие",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                        fsctrl.rewriteFile(fsctrl.CurrDir, fh, UsefulThings.ENCODING.GetBytes(fvw.textField.Text), true);
                 }
             }
             catch (Exception e)

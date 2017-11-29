@@ -12,17 +12,27 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace MeowOS
+namespace MeowOS.FileSystem
 {
     /// <summary>
     /// Логика взаимодействия для FileViewerWindow.xaml
     /// </summary>
     public partial class FileViewerWindow : Window
     {
-        public FileViewerWindow(string content)
+        private bool isChanged;
+        public bool IsChanged => isChanged;
+
+        public FileViewerWindow(FileHeader fh, string content)
         {
             InitializeComponent();
+            Title = fh.NamePlusExtensionWithoutZeros;
             textField.Text = content;
+            isChanged = false;
+        }
+
+        private void textField_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            isChanged = true;
         }
     }
 }
