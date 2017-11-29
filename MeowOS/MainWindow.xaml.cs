@@ -48,13 +48,12 @@ namespace MeowOS
             bufferData = null;
             bufferRestorePath = null;
             Title = "MeowOS - " + Session.userInfo.Login;
-
-            //TODO 18.11: менять функционал для админа/пользователя
+            
             showHiddenChb.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
         }
 
         //private enum PathTypes { PT_ABSOLUTE, PT_RELATIVE };
-        private void openPath(string path/*, PathTypes pathType = PathTypes.PT_ABSOLUTE*/)
+        private void openPath(string path)
         {
             path = UsefulThings.clearExcessSeparators(path);
             try
@@ -91,7 +90,7 @@ namespace MeowOS
                     fh = fsctrl.getFileHeader(path, true);
                 }
 
-                if (fh == null)
+                if (!path.Equals("") && fh == null)
                     throw new InvalidPathException(path);
                 if (path.Equals("") || fh.IsDirectory)
                 {
@@ -132,7 +131,7 @@ namespace MeowOS
         private FileView addFileView(FileHeader fh)
         {
             FileView fv = null;
-            if (fh.Name.First() != UsefulThings.DELETED_MARK) //Проверять внутри метода или каждый раз перед вызовом?
+            if (fh.Name.First() != UsefulThings.DELETED_MARK)
             {
                 if (!fh.IsHidden || fh.IsHidden && showHiddenChb.IsChecked.Value)
                 {
@@ -226,7 +225,6 @@ namespace MeowOS
 
         private void createCmd(bool isDirectory)
         {
-            //TODO: 22.11: проверить права записи
             FileHeader fh = new FileHeader(Session.userInfo);
             fh.IsDirectory = isDirectory;
             if (isDirectory)
@@ -284,9 +282,17 @@ namespace MeowOS
 
         private void deleteCmd()
         {
-            fsctrl.deleteFile(fsctrl.CurrDir, selection.FileHeader, true);
-            wrapPanel.Children.Remove(selection);
-            selection = null;
+
+            try
+            {
+                fsctrl.deleteFile(fsctrl.CurrDir, selection.FileHeader, true);
+                wrapPanel.Children.Remove(selection);
+                selection = null;
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void MenuItem_Copy_Click(object sender, RoutedEventArgs e)
@@ -296,8 +302,6 @@ namespace MeowOS
 
         private void copyCmd()
         {
-            //TODO 22.11: копировать также вложенные файлы
-            //QST: может ли юзер без прав чтения копировать?
             writeToBuffer(selection.FileHeader.toByteArray(false), fsctrl.readFile(selection.FileHeader, false), null);
         }
 
@@ -393,8 +397,7 @@ namespace MeowOS
         {
             if (fh.IsDirectory)
             {
-                fsctrl.writeFile(path, fh, /*data*/null, true);
-                //byte[] content = fsctrl.readFile(fh, false);
+                fsctrl.writeFile(path, fh, null, true);
                 for (int offset = 0; offset < data.Length; offset += FileHeader.SIZE)
                 {
                     FileHeader curr = new FileHeader(data.Skip(offset).ToArray());
@@ -436,7 +439,6 @@ namespace MeowOS
             OpenFileDialog ofd = new OpenFileDialog();
             if (ofd.ShowDialog().Value)
             {
-                //TODO: 22.11: проверить права записи
                 FileHeader fh = new FileHeader(string.Concat(System.IO.Path.GetFileNameWithoutExtension(ofd.SafeFileName).Where(char.IsLetterOrDigit)),
                     string.Concat(System.IO.Path.GetExtension(ofd.SafeFileName).Where(char.IsLetterOrDigit)), 0,
                     Session.userInfo.Uid, Session.userInfo.Gid);

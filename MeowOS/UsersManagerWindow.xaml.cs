@@ -202,20 +202,40 @@ namespace MeowOS
                     MessageBox.Show("Пользователь с таким логином уже существует", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 else
                 {
-                    //TODO 26.11: запросить старый пароль, если изменения внёс USER
-                    int index = usersListView.SelectedIndex;
                     SHA1 sha = SHA1.Create();
-                    ui.Login = newLogin;
-                    ui.Digest = UsefulThings.ENCODING.GetString(sha.ComputeHash(UsefulThings.ENCODING.GetBytes(euw.pass1Edit.Password)));
-                    ui.Digest = UsefulThings.replaceControlChars(ui.Digest);
-                    ui.Gid = (euw.groupCB.SelectedItem as GroupInfo).Id;
-                    ui.Group = (euw.groupCB.SelectedItem as GroupInfo).Name;
-                    ui.Role = (UserInfo.Roles)Enum.Parse(typeof(UserInfo.Roles), euw.roleCB.SelectedItem.ToString());
-                    reloadUsers();
-                    usersListView.SelectedIndex = index;
+                    string newDigest = UsefulThings.ENCODING.GetString(sha.ComputeHash(UsefulThings.ENCODING.GetBytes(euw.pass1Edit.Password)));
+                    newDigest = UsefulThings.replaceControlChars(newDigest);
 
-                    if (Session.userInfo.Uid == ui.Uid)
-                        Session.userInfo = new UserInfo(ui);
+                    bool isContinue = true;
+                    if ((!newLogin.Equals(ui.Login) || !newDigest.Equals(ui.Digest)) && Session.userInfo.Role == UserInfo.Roles.USER)
+                    {
+                        bool passEntered;
+                        do
+                        {
+                            AskPasswordWindow apw = new AskPasswordWindow();
+                            passEntered = apw.ShowDialog().Value;
+                            string confirmDigest = UsefulThings.ENCODING.GetString(sha.ComputeHash(UsefulThings.ENCODING.GetBytes(apw.passEdit.Password)));
+                            confirmDigest = UsefulThings.replaceControlChars(confirmDigest);
+                            isContinue = passEntered && confirmDigest.Equals(ui.Digest);
+                            if (passEntered && !isContinue)
+                                MessageBox.Show("Прежний пароль введён неверно! Повторите ввод.", "Неверный пароль", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        } while (passEntered && !isContinue);
+                    }
+
+                    if (isContinue)
+                    {
+                        int index = usersListView.SelectedIndex;
+                        ui.Login = newLogin;
+                        ui.Digest = newDigest;
+                        ui.Gid = (euw.groupCB.SelectedItem as GroupInfo).Id;
+                        ui.Group = (euw.groupCB.SelectedItem as GroupInfo).Name;
+                        ui.Role = (UserInfo.Roles)Enum.Parse(typeof(UserInfo.Roles), euw.roleCB.SelectedItem.ToString());
+                        reloadUsers();
+                        usersListView.SelectedIndex = index;
+
+                        if (Session.userInfo.Uid == ui.Uid)
+                            Session.userInfo = new UserInfo(ui);
+                    }
                 }
             }
         }
