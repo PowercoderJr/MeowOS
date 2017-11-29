@@ -1,0 +1,12 @@
+﻿<Window x:Class="MeowOS.FileSystem.FileViewerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MeowOS.FileSystem"
+        mc:Ignorable="d"
+        Title="Просмотр файла" Height="400" Width="500">
+    <DockPanel>
+        <TextBox Name="textField" Margin="10" TextWrapping="Wrap" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" TextChanged="textField_TextChanged"/>
+    </DockPanel>
+</Window>

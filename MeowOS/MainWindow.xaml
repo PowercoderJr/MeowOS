@@ -1,0 +1,45 @@
+﻿<Window x:Class="MeowOS.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MeowOS"
+        mc:Ignorable="d"
+        Title="MeowOS" Height="500" Width="750"
+        Closing="Window_Closing">
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <Menu Height="25" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+            <MenuItem Header="Система">
+                <MenuItem Header="Менеджер пользователей" Click="MenuItem_UsersManager_Click"/>
+                <Separator/>
+                <MenuItem Header="Сведения о файловой системе" Click="MenuItem_fsProperties_Click"/>
+                <Separator/>
+                <MenuItem Header="Выйти из системы" Click="logout"/>
+            </MenuItem>
+            <MenuItem Header="Файл" SubmenuOpened="MenuItem_File_Expand">
+                <MenuItem Name="crFileItem" Header="Создать файл..." Click="MenuItem_Create_Click"/>
+                <MenuItem Name="crDirItem" Header="Создать каталог..." Click="MenuItem_Create_Click"/>
+                <Separator/>
+                <MenuItem Name="openItem" Header="Открыть" Click="MenuItem_Open_Click"/>
+                <MenuItem Name="deleteItem" Header="Удалить" Click="MenuItem_Delete_Click"/>
+                <Separator/>
+                <MenuItem Name="copyItem" Header="Копировать" Click="MenuItem_Copy_Click"/>
+                <MenuItem Name="cutItem" Header="Вырезать" Click="MenuItem_Cut_Click"/>
+                <MenuItem Name="pasteItem" Header="Вставить" Click="MenuItem_Paste_Click"/>
+                <Separator/>
+                <MenuItem Name="propertiesItem" Header="Свойства" Click="MenuItem_Properties_Click"/>
+                <Separator/>
+                <MenuItem Name="uploadItem" Header="Загрузить из ОС..." Click="MenuItem_Upload_Click"/>
+                <MenuItem Name="downloadItem" Header="Выгрузить в ОС..." Click="MenuItem_Download_Click"/>
+            </MenuItem>
+            <MenuItem Header="Проводник">
+                <CheckBox Name="showHiddenChb" Content="Показывать скрытые файлы" IsChecked="False" Checked="showHiddenChb_Changed" Unchecked="showHiddenChb_Changed"/>
+            </MenuItem>
+        </Menu>
+        <local:AutoGreyableImage x:Name="backImg" HorizontalAlignment="Left" Height="40" Margin="0,25,0,0" VerticalAlignment="Top" Width="40" MouseLeftButtonUp="onBackLMBUp" Source="pack://siteoforigin:,,,/Resources/back.png" Cursor="Hand"/>
+        <TextBox Name="addressEdit" Height="25" Margin="45,30,10,0" TextWrapping="Wrap" Text="/" VerticalAlignment="Top" HorizontalContentAlignment="Stretch" KeyDown="TextBox_KeyDown"/>
+        <ScrollViewer Margin="0,65,0,0" HorizontalContentAlignment="Stretch">
+            <WrapPanel Name="wrapPanel"/>
+        </ScrollViewer>
+    </Grid>
+</Window>
