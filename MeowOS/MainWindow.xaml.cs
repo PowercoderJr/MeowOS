@@ -176,15 +176,13 @@ namespace MeowOS
                 if (!umw.UsersData.SequenceEqual(usersData))
                 {
                     FileHeader usersHeader = fsctrl.getFileHeader("/users.sys", false);
-                    //fsctrl.deleteFile("/", usersHeader);
-                    fsctrl.rewriteFile("/", usersHeader, umw.UsersData);
+                    fsctrl.rewriteFile("/", usersHeader, umw.UsersData, false);
                 }
 
                 if (!umw.GroupsData.SequenceEqual(groupsData))
                 {
                     FileHeader groupsHeader = fsctrl.getFileHeader("/groups.sys", false);
-                    //fsctrl.deleteFile("/", groupsHeader);
-                    fsctrl.rewriteFile("/", groupsHeader, umw.GroupsData);
+                    fsctrl.rewriteFile("/", groupsHeader, umw.GroupsData, false);
                 }
 
                 Title = "MeowOS - " + Session.userInfo.Login;
@@ -192,12 +190,6 @@ namespace MeowOS
             catch (Exception e)
             {
                 MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-
-                /*rewrite разбирается сам
-                if (e is RootdirOutOfSpaceException || e is DiskOutOfSpaceException)
-                {
-                    fsctrl.restoreFat();
-                }*/
             }
         }
 
@@ -245,7 +237,7 @@ namespace MeowOS
             {
                 try
                 {
-                    fsctrl.writeFile(fsctrl.CurrDir, fh, null);
+                    fsctrl.writeFile(fsctrl.CurrDir, fh, null, true);
                     FileView fv = addFileView(fh);
                     onFileViewMouseDown(fv, null);
                 }
@@ -256,7 +248,7 @@ namespace MeowOS
                     {
                         try
                         {
-                            fsctrl.deleteFile(fsctrl.CurrDir, fh);
+                            fsctrl.deleteFile(fsctrl.CurrDir, fh, false);
                         }
                         catch
                         {
@@ -289,7 +281,7 @@ namespace MeowOS
 
         private void deleteCmd()
         {
-            fsctrl.deleteFile(fsctrl.CurrDir, selection.FileHeader);
+            fsctrl.deleteFile(fsctrl.CurrDir, selection.FileHeader, true);
             wrapPanel.Children.Remove(selection);
             selection = null;
         }
@@ -339,18 +331,18 @@ namespace MeowOS
             {
                 try
                 {
-                    fsctrl.writeHeader(fsctrl.CurrDir, fh);
-                    fsctrl.deleteHeader(bufferRestorePath, fh);
+                    fsctrl.writeHeader(fsctrl.CurrDir, fh, true);
+                    fsctrl.deleteHeader(bufferRestorePath, fh, true);
                     success = true;
                 }
                 catch (Exception e)
                 {
                     MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                    if (!(e is FileAlreadyExistException))
-                        fsctrl.deleteHeader(fsctrl.CurrDir, fh);
                     try
                     {
-                        fsctrl.writeHeader(bufferRestorePath, fh);
+                        if (!(e is FileAlreadyExistException))
+                            fsctrl.deleteHeader(fsctrl.CurrDir, fh, false);
+                        fsctrl.writeHeader(bufferRestorePath, fh, false);
                     }
                     catch
                     {
@@ -372,7 +364,7 @@ namespace MeowOS
                     {
                         try
                         {
-                            fsctrl.deleteFile(fsctrl.CurrDir, fh);
+                            fsctrl.deleteFile(fsctrl.CurrDir, fh, false);
                         }
                         catch
                         {
@@ -398,7 +390,7 @@ namespace MeowOS
         {
             if (fh.IsDirectory)
             {
-                fsctrl.writeFile(path, fh, /*data*/null);
+                fsctrl.writeFile(path, fh, /*data*/null, true);
                 //byte[] content = fsctrl.readFile(fh, false);
                 for (int offset = 0; offset < data.Length; offset += FileHeader.SIZE)
                 {
@@ -407,7 +399,7 @@ namespace MeowOS
                 }
             }
             else
-                fsctrl.writeFile(path, fh, data);
+                fsctrl.writeFile(path, fh, data, true);
         }
 
         private void MenuItem_Properties_Click(object sender, RoutedEventArgs e)
@@ -448,7 +440,7 @@ namespace MeowOS
                 try
                 {
                     byte[] data = File.ReadAllBytes(ofd.FileName);
-                    fsctrl.writeFile(fsctrl.CurrDir, fh, data);
+                    fsctrl.writeFile(fsctrl.CurrDir, fh, data, true);
                     FileView fv = addFileView(fh);
                     onFileViewMouseDown(fv, null);
                 }
@@ -459,7 +451,7 @@ namespace MeowOS
                     {
                         try
                         {
-                            fsctrl.deleteFile(fsctrl.CurrDir, fh);
+                            fsctrl.deleteFile(fsctrl.CurrDir, fh, false);
                         }
                         catch
                         {

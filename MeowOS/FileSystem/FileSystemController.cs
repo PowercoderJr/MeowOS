@@ -83,14 +83,14 @@ namespace MeowOS.FileSystem
 
             //Заголовок файла с группами пользователей
             FileHeader groupsHeader = new FileHeader("groups", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
-            writeFile("/", groupsHeader, UsefulThings.ENCODING.GetBytes(UserInfo.DEFAULT_GROUP));
+            writeFile("/", groupsHeader, UsefulThings.ENCODING.GetBytes(UserInfo.DEFAULT_GROUP), false);
             //Заголовок файла с учётными записями пользователей
             FileHeader usersHeader = new FileHeader("users", "sys", (byte)(FileHeader.FlagsList.FL_HIDDEN | FileHeader.FlagsList.FL_SYSTEM), 1, 1);
             writeFile("/", usersHeader, UsefulThings.ENCODING.GetBytes(
                 adminLogin + UsefulThings.USERDATA_SEPARATOR +
                 adminDigest + UsefulThings.USERDATA_SEPARATOR + 
                 "1" + UsefulThings.USERDATA_SEPARATOR + 
-                (int)UserInfo.Roles.ADMIN));
+                (int)UserInfo.Roles.ADMIN), false);
 
             /*FileHeader justFile = new FileHeader("justFile", "txt", 0, 1, 1);
             writeFile("/", justFile, null);
@@ -154,7 +154,7 @@ namespace MeowOS.FileSystem
         /// <param name="path">Путь к директории, куда следует записать файл</param>
         /// <param name="fileHeader">Заголовок файла</param>
         /// <param name="data">Содержимое файла</param>
-        public void writeFile(string path, FileHeader fileHeader, byte[] data)
+        public void writeFile(string path, FileHeader fileHeader, byte[] data, bool checkRights)
         {
             path = UsefulThings.clearExcessSeparators(path);
             writeArea(Areas.FAT2);
@@ -166,7 +166,7 @@ namespace MeowOS.FileSystem
                 data = UsefulThings.ENCODING.GetBytes("\0");
 
             //Запись заголовка
-            writeHeader(path, fileHeader);
+            writeHeader(path, fileHeader, checkRights);
 
             //Запись данных
             int toWrite = data.Length, toWriteOnThisStep, i = 0;
@@ -203,7 +203,7 @@ namespace MeowOS.FileSystem
         /// </summary>
         /// <param name="path">Путь к директории, куда следует дописать заголовок</param>
         /// <param name="fileHeader">Дописываемый заголовок файла</param>
-        public void writeHeader(string path, FileHeader fileHeader)
+        public void writeHeader(string path, FileHeader fileHeader, bool checkRights)
         {
             string checkFilename = path + "/" + fileHeader.NamePlusExtensionWithoutZeros;
             if (getFileHeader(checkFilename, false) != null)
@@ -232,6 +232,13 @@ namespace MeowOS.FileSystem
                 FileHeader lastDirHeader = getFileHeader(path, false);
                 if (lastDirHeader == null)
                     throw new InvalidPathException(path);
+                if (lastDirHeader.IsReadonly)
+                    throw new FileIsReadonlyException(lastDirHeader.IsDirectory);
+                if (checkRights && !(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
+                    (lastDirHeader.AccessRights & (ushort)FileHeader.RightsList.OW) > 0 ||
+                    (lastDirHeader.AccessRights & (ushort)FileHeader.RightsList.GW) > 0 && lastDirHeader.Gid == Session.userInfo.Gid ||
+                    (lastDirHeader.AccessRights & (ushort)FileHeader.RightsList.UW) > 0 && lastDirHeader.Uid == Session.userInfo.Uid))
+                    throw new HaveNoRightsException(HaveNoRightsException.Rights.R_WRITE);
                 br.BaseStream.Seek(lastDirHeader.FirstCluster * superBlock.ClusterSize, SeekOrigin.Begin);
                 byte[] directory = br.ReadBytes((int)lastDirHeader.Size);
                 posToWrite = 0;
@@ -247,7 +254,7 @@ namespace MeowOS.FileSystem
                 else
                     directory = directory.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(directory.Skip(posToWrite + FileHeader.SIZE)).ToArray();
                 
-                rewriteFile(pathWithoutLastDir, lastDirHeader, directory);
+                rewriteFile(pathWithoutLastDir, lastDirHeader, directory, checkRights);
             }
         }
 
@@ -255,12 +262,19 @@ namespace MeowOS.FileSystem
         /// <param name="path">Путь к директории, где расположен файл</param>
         /// <param name="fileHeader">Заголовок файла</param>
         /// <param name="delHeader">Нужно ли удалять заголовок из директории</param>
-        public void deleteFile(string path, FileHeader fileHeader, bool isRecursive = true)
+        public void deleteFile(string path, FileHeader fileHeader, bool checkRights, bool isRecursive = true)
         {
             int currCluster = fileHeader.FirstCluster;
             if (currCluster < superBlock.DataOffset / superBlock.ClusterSize)
                 throw new ForbiddenOperationException();
-            
+            if (fileHeader.IsReadonly)
+                throw new FileIsReadonlyException(fileHeader.IsDirectory);
+            if (checkRights && !(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
+                (fileHeader.AccessRights & (ushort)FileHeader.RightsList.OW) > 0 ||
+                (fileHeader.AccessRights & (ushort)FileHeader.RightsList.GW) > 0 && fileHeader.Gid == Session.userInfo.Gid ||
+                (fileHeader.AccessRights & (ushort)FileHeader.RightsList.UW) > 0 && fileHeader.Uid == Session.userInfo.Uid))
+                throw new HaveNoRightsException(HaveNoRightsException.Rights.R_WRITE);
+
             if (fileHeader.IsDirectory && isRecursive)
             {
                 byte[] content = readFile(fileHeader, false);
@@ -272,7 +286,7 @@ namespace MeowOS.FileSystem
             }
 
             //Удаление записи из родительской директории
-            deleteHeader(path, fileHeader);
+            deleteHeader(path, fileHeader, checkRights);
 
             //Помечание блоков как свободных
             writeArea(Areas.FAT2);
@@ -290,14 +304,26 @@ namespace MeowOS.FileSystem
         /// <summary>Удаляет заголовок файла из указанной директории</summary>
         /// <param name="path">Путь к директории, где записан заголовок</param>
         /// <param name="fileHeader">Заголовок файла</param>
-        public void deleteHeader(string path, FileHeader fileHeader)
+        public void deleteHeader(string path, FileHeader fileHeader, bool checkRights)
         {
             path = UsefulThings.clearExcessSeparators(path);
-            FileHeader fh = new FileHeader();
             string fullpath = path + '/' + (fileHeader.IsDirectory ? fileHeader.Name : (fileHeader.Name + '.' + fileHeader.Extension));
             int offset = (int)getFileHeaderOffset(fullpath, false);
             if (offset < 0)
                 throw new InvalidPathException(fullpath);
+            else if (offset >= superBlock.DataOffset)
+            {
+                br.BaseStream.Seek(offset, SeekOrigin.Begin);
+                FileHeader fh = new FileHeader(br.BaseStream);
+                if (fh.IsReadonly)
+                    throw new FileIsReadonlyException(fh.IsDirectory);
+                if (checkRights && !(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
+                    (fh.AccessRights & (ushort)FileHeader.RightsList.OW) > 0 ||
+                    (fh.AccessRights & (ushort)FileHeader.RightsList.GW) > 0 && fh.Gid == Session.userInfo.Gid ||
+                    (fh.AccessRights & (ushort)FileHeader.RightsList.UW) > 0 && fh.Uid == Session.userInfo.Uid))
+                    throw new HaveNoRightsException(HaveNoRightsException.Rights.R_WRITE);
+            }
+
             bw.Seek(offset, SeekOrigin.Begin);
             bw.Write(UsefulThings.DELETED_MARK);
             if (offset >= superBlock.RootOffset && offset < superBlock.DataOffset)
@@ -308,24 +334,25 @@ namespace MeowOS.FileSystem
         /// <param name="path">Путь к директории, куда следует записать файл</param>
         /// <param name="fileHeader">Заголовок файла</param>
         /// <param name="data">Содержимое файла</param>
-        public void rewriteFile(string path, FileHeader fileHeader, byte[] data)
+        public void rewriteFile(string path, FileHeader fileHeader, byte[] data, bool checkRights)
         {
             byte[] buf = null;
-            if (getFileHeader(path + "/" + fileHeader.NamePlusExtensionWithoutZeros, false) != null)
-            {
-                buf = readFile(fileHeader, false);
-                deleteFile(path, fileHeader, false);
-            }
             try
             {
-                writeFile(path, fileHeader, data);
+                if (getFileHeader(path + "/" + fileHeader.NamePlusExtensionWithoutZeros, false) != null)
+                {
+                    buf = readFile(fileHeader, false);
+                    deleteFile(path, fileHeader, checkRights);
+                }
+                writeFile(path, fileHeader, data, checkRights);
             }
             catch (Exception e)
             {
-                deleteFile(path, fileHeader, false);
-                if (buf != null)
+                if (!(e is HaveNoRightsException))
                 {
-                    writeFile(path, fileHeader, buf);
+                    deleteFile(path, fileHeader, false);
+                    if (buf != null)
+                        writeFile(path, fileHeader, buf, false);
                 }
                 throw e;
             }
@@ -464,6 +491,7 @@ namespace MeowOS.FileSystem
             bool stillWithinCluster = false, stillHeadersInFile = false, success = false;
             uint currCluster = dirFirstCluster;
             uint headersRead = 0;
+            FileHeader fh = null;
             //Цикл по блокам файла
             while (!success && currCluster != FAT.CL_EOF)
             {
@@ -473,13 +501,7 @@ namespace MeowOS.FileSystem
                 headersRead = 0;
                 do
                 {
-                    FileHeader fh = new FileHeader(br.BaseStream);
-                    if (checkRights && !(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
-                        (fh.AccessRights & (ushort)FileHeader.RightsList.OR) > 0 ||
-                        (fh.AccessRights & (ushort)FileHeader.RightsList.GR) > 0 && fh.Gid == Session.userInfo.Gid ||
-                        (fh.AccessRights & (ushort)FileHeader.RightsList.UR) > 0 && fh.Uid == Session.userInfo.Uid))
-                        throw new HaveNoRightsException(HaveNoRightsException.Rights.R_READ);
-                    
+                    fh = new FileHeader(br.BaseStream);                    
                     success = fh.Name.Equals(filename) && fh.Extension.Equals(extension);
                     stillWithinCluster = br.BaseStream.Position - currClusterOffset < superBlock.ClusterSize;
                     stillHeadersInFile = fh.Name[0] != '\0';
@@ -490,7 +512,14 @@ namespace MeowOS.FileSystem
             }
 
             if (success)
+            {
+                if (checkRights && !(Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
+                    (fh.AccessRights & (ushort)FileHeader.RightsList.OR) > 0 ||
+                    (fh.AccessRights & (ushort)FileHeader.RightsList.GR) > 0 && fh.Gid == Session.userInfo.Gid ||
+                    (fh.AccessRights & (ushort)FileHeader.RightsList.UR) > 0 && fh.Uid == Session.userInfo.Uid))
+                    throw new HaveNoRightsException(HaveNoRightsException.Rights.R_READ);
                 return currCluster * superBlock.ClusterSize + (headersRead - 1) * FileHeader.SIZE;
+            }
             else
                 return -1;
         }

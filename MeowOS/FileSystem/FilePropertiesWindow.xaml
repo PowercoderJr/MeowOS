@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MeowOS.FileSystem"
         mc:Ignorable="d"
-        Title="Свойства" Height="415" Width="310" ResizeMode="CanMinimize"> <!-- -10;-10 в runtime -->
+        Title="Свойства" Height="465" Width="310" ResizeMode="CanMinimize"> <!-- -10;-10 в runtime -->
     <Grid>
         <Label Content="Имя файла:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
         <TextBox Name="nameEdit" HorizontalAlignment="Left" Height="23" Margin="126,12,0,0" VerticalAlignment="Top" Width="158" TextChanged="nameOrExtensionChanged"/>
@@ -17,16 +17,20 @@
         <TextBox Name="chDateEdit" HorizontalAlignment="Left" Height="23" Margin="126,90,0,0" VerticalAlignment="Top" Width="158" IsReadOnly="True" Foreground="#FF555555"/>
         <Label Content="Время изменения:" HorizontalAlignment="Left" Margin="10,114,0,0" VerticalAlignment="Top"/>
         <TextBox Name="chTimeEdit" HorizontalAlignment="Left" Height="23" Margin="126,116,0,0" VerticalAlignment="Top" Width="158" IsReadOnly="True" Foreground="#FF555555"/>
-        <Label Content="Атрибуты:" HorizontalAlignment="Left" Margin="10,140,0,0" VerticalAlignment="Top"/>
-        <Border Margin="126,145,10,178" BorderBrush="#FFAFB0B6" BorderThickness="1" Height="54" Width="158">
+        <Label Content="UID владельца:" HorizontalAlignment="Left" Margin="10,140,0,0" VerticalAlignment="Top"/>
+        <TextBox Name="uidEdit" HorizontalAlignment="Left" Height="23" Margin="126,142,0,0" VerticalAlignment="Top" Width="158" IsReadOnly="True" Foreground="#FF555555"/>
+        <Label Content="GID владельца:" HorizontalAlignment="Left" Margin="10,166,0,0" VerticalAlignment="Top"/>
+        <TextBox Name="gidEdit" HorizontalAlignment="Left" Height="23" Margin="126,168,0,0" VerticalAlignment="Top" Width="158" IsReadOnly="True" Foreground="#FF555555"/>
+        <Label Content="Атрибуты:" HorizontalAlignment="Left" Margin="10,192,0,0" VerticalAlignment="Top"/>
+        <Border Margin="126,188,10,178" BorderBrush="#FFAFB0B6" BorderThickness="1" Height="54" Width="158">
             <Grid>
                 <CheckBox Name="flReadOnlyChb" Content="Только чтение" HorizontalAlignment="Left" Margin="2,2,0,0" VerticalAlignment="Top"/>
                 <CheckBox Name="flHiddenChb" Content="Скрытый" HorizontalAlignment="Left" Margin="2,18,0,0" VerticalAlignment="Top"/>
                 <CheckBox Name="flSystemChb" Content="Системный" HorizontalAlignment="Left" Margin="2,34,0,0" VerticalAlignment="Top"/>
             </Grid>
         </Border>
-        <Label Content="Права доступа:" HorizontalAlignment="Left" Margin="10,205,0,0" VerticalAlignment="Top"/>
-        <Border Margin="126,202,10,68" BorderBrush="#FFAFB0B6" BorderThickness="1" Height="107" Width="158">
+        <Label Content="Права доступа:" HorizontalAlignment="Left" Margin="10,252,0,0" VerticalAlignment="Top"/>
+        <Border Margin="126,248,10,68" BorderBrush="#FFAFB0B6" BorderThickness="1" Height="107" Width="158">
             <Grid>
                 <Label Content="U" HorizontalAlignment="Left" Margin="81,2,0,0" VerticalAlignment="Top"/>
                 <Label Content="G" HorizontalAlignment="Left" Margin="104,2,0,0" VerticalAlignment="Top"/>

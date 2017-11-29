@@ -57,10 +57,18 @@ namespace MeowOS.FileSystem
             sizeEdit.Text = fh.Size.ToString() + " байт";
             chDateEdit.Text = fh.ChDateDDMMYYYY;
             chTimeEdit.Text = fh.ChTimeHHMMSS;
+            uidEdit.Text = fh.Uid.ToString();
+            gidEdit.Text = fh.Gid.ToString();
             for (int i = 0; i < flagsChbs.Length; ++i)
                 flagsChbs[i].IsChecked = (fh.Flags & (1 << i)) > 0;
             for (int i = 0; i < accessRightsChbs.Length; ++i)
                 accessRightsChbs[i].IsChecked = (fh.AccessRights & (1 << i)) > 0;
+
+
+            okBtn.IsEnabled = (Session.userInfo == null || Session.userInfo.Role == UserInfo.Roles.ADMIN ||
+                (fh.AccessRights & (ushort)FileHeader.RightsList.OW) > 0 ||
+                (fh.AccessRights & (ushort)FileHeader.RightsList.GW) > 0 && fh.Gid == Session.userInfo.Gid ||
+                (fh.AccessRights & (ushort)FileHeader.RightsList.UW) > 0 && fh.Uid == Session.userInfo.Uid);                
         }
 
         private void okBtn_Click(object sender, RoutedEventArgs e)
