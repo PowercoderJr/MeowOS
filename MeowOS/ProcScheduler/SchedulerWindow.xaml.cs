@@ -19,14 +19,13 @@ namespace MeowOS.ProcScheduler
     /// </summary>
     public partial class SchedulerWindow : Window
     {
-        private const int MEM_AVAILABLE = 1024;
-        private Process[] procs;
-        private int[] bornTimes;
+        private Scheduler scheduler;
 
         public SchedulerWindow()
         {
             InitializeComponent();
-            avMemLabel.Content = "Доступная память: " + MEM_AVAILABLE;
+            scheduler = new Scheduler();
+            avMemLabel.Content = "Доступная память: " + Scheduler.AVAILABLE_MEM;
         }
 
         private void controlDigits(object sender, TextChangedEventArgs e)
@@ -45,62 +44,44 @@ namespace MeowOS.ProcScheduler
             grid.Children.Clear();
             grid.RowDefinitions.Clear();
             grid.ColumnDefinitions.Clear();
-            procs = null;
-            bornTimes = null;
             logTextbox.Clear();
+            scheduler.clear();
         }
 
         private void generateBtn_Click(object sender, RoutedEventArgs e)
         {
-            int procAmount = int.Parse(procAmountEdit.Text);
+            int procAmount = procAmountEdit.Text.Length > 0 ? int.Parse(procAmountEdit.Text) : 0;
             if (procAmount <= 0)
             {
-                MessageBox.Show("Количество процессов должно быть положительным числом");
+                MessageBox.Show("Количество процессов должно быть положительным числом",
+                    "Укажите входные данные", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            int maxBurst = int.Parse(maxBurstEdit.Text);
+            int maxBurst = maxBurstEdit.Text.Length > 0 ? int.Parse(maxBurstEdit.Text) : 0;
             if (maxBurst <= 0)
             {
-                MessageBox.Show("Максимальное значение burst должно быть положительным числом");
+                MessageBox.Show("Максимальное значение burst должно быть положительным числом",
+                    "Укажите входные данные", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             clear();
-            procs = new Process[procAmount];
-            bornTimes = new int[procAmount];
-            Random rnd = new Random();
-            int unitsAmount = 0;
+            scheduler.init(procAmount, maxBurst, log);
+
             RowDefinition firstRow = new RowDefinition();
             firstRow.Height = new GridLength(30);
             grid.RowDefinitions.Add(firstRow);
-            for (int i = 0; i < procAmount; ++i)
+            for (int i = 1; i <= procAmount + 1; ++i)
             {
                 RowDefinition row = new RowDefinition();
                 row.Height = new GridLength(50);
                 grid.RowDefinitions.Add(row);
-
-                int j;
-                do
-                {
-                    j = rnd.Next(procAmount);
-                } while (procs[j] != null);
-
-                procs[j] = new Process(i + 1, (Process.Priorities)rnd.Next(Enum.GetNames(typeof(Process.Priorities)).Length), rnd.Next(maxBurst) + 1, rnd.Next(MEM_AVAILABLE) + 1);
-                bornTimes[j] = rnd.Next(unitsAmount) + 1;
-                unitsAmount += procs[j].Burst;
-                logTextbox.AppendText("Сгенерирован процесс: " +
-                    "PID = " + procs[j].PID +
-                    ", приоритет = " + procs[j].Priority +
-                    ", burst = " + procs[j].Burst +
-                    ", потребляемая память = " + procs[j].MemRequired +
-                    ", время появления = " + bornTimes[j] +
-                    "\n");
             }
 
             ColumnDefinition firstColumn = new ColumnDefinition();
             firstColumn.Width = new GridLength(150);
             grid.ColumnDefinitions.Add(firstColumn);
-            for (int i = 1; i <= unitsAmount; ++i)
+            for (int i = 1; i <= scheduler.UnitsAmount; ++i)
             {
                 ColumnDefinition col = new ColumnDefinition();
                 col.Width = new GridLength(50);
@@ -112,11 +93,25 @@ namespace MeowOS.ProcScheduler
                 l.HorizontalContentAlignment = HorizontalAlignment.Center;
                 grid.Children.Add(l);
             }
+            ColumnDefinition lastCol = new ColumnDefinition();
+            lastCol.Width = new GridLength(50);
+            grid.ColumnDefinitions.Add(lastCol);
+        }
+
+        private void log(string str)
+        {
+            logTextbox.AppendText(str + "\n");
+            logTextbox.ScrollToEnd();
         }
 
         private void clearBtn_Click(object sender, RoutedEventArgs e)
         {
             clear();
+        }
+
+        private void stepBtn_Click(object sender, RoutedEventArgs e)
+        {
+            scheduler.doUnit();
         }
     }
 }

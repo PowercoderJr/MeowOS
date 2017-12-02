@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace MeowOS.ProcScheduler
 {
-    class Process
+    public class Process
     {
-        public enum Priorities { ABSOLUTE = 0, HIGH = 1, NORMAL = 2, LOW = 3 };
+        public enum Priorities { LOW = 0, NORMAL = 1, HIGH = 2, ABSOLUTE = 3 }
         public enum States { UNBORN, CREATED, READY, RUNNING, WAITING, KILLED }
 
         private int pid;
@@ -29,7 +29,11 @@ namespace MeowOS.ProcScheduler
         }
 
         private int burst;
-        public int Burst => burst;
+        public int Burst
+        {
+            get => burst;
+            set => burst = value;
+        }
 
         private int memRequired;
         public int MemRequired => memRequired;
@@ -45,6 +49,11 @@ namespace MeowOS.ProcScheduler
             this.priority = priority;
             this.burst = burst;
             this.memRequired = memRequired;
+        }
+
+        public override string ToString()
+        {
+            return pid.ToString() + " (" + priority + ")";
         }
     }
 }

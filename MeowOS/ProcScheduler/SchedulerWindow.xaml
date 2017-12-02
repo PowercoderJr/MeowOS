@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MeowOS.ProcScheduler"
         mc:Ignorable="d"
-        Title="Планировщик процессов" Height="500" Width="656">
+        Title="Планировщик процессов" Height="500" Width="666">
     <DockPanel>
         <Grid DockPanel.Dock="Top" Background="#FFDDDDDD" Height="50">
             <Label Name="avMemLabel" Content="Доступная память:" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
@@ -16,7 +16,7 @@
             <TextBox Name="maxBurstEdit" Margin="344,27,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="25" MaxLength="2" TextChanged="controlDigits"/>
             <Button Name="generateBtn" Content="Генерировать" HorizontalAlignment="Left" VerticalAlignment="Stretch" Margin="382,0,0,0" Width="85" Click="generateBtn_Click"/>
             <Button Name="clearBtn" Content="Очистить" HorizontalAlignment="Left" VerticalAlignment="Stretch" Margin="472,0,0,0" Width="85" Click="clearBtn_Click"/>
-            <Button Name="stepBtn" Content="Шаг" HorizontalAlignment="Left" VerticalAlignment="Stretch" Margin="562,0,0,0" Width="85"/>
+            <Button Name="stepBtn" Content="Шаг" HorizontalAlignment="Left" VerticalAlignment="Stretch" Margin="562,0,0,0" Width="85" Click="stepBtn_Click"/>
         </Grid>
         <TextBox DockPanel.Dock="Bottom" Name="logTextbox" IsReadOnly="True" Height="100"/>
         <ScrollViewer Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible">
