@@ -242,7 +242,7 @@ namespace MeowOS.FileSystem
             return (ushort)((time.Hour << 11) + (time.Minute << 5) + time.Second / 2);
         }
         
-        public byte[] toByteArray(bool expandToCluster)
+        public byte[] toByteArray(bool expandToCluster = false)
         {
             ArrayList buffer = new ArrayList(SIZE);
             buffer.AddRange(UsefulThings.ENCODING.GetBytes(name.ToArray()));
@@ -305,7 +305,7 @@ namespace MeowOS.FileSystem
 
         public object Clone()
         {
-            return new FileHeader(toByteArray(false));
+            return new FileHeader(toByteArray());
         }
     }
 }

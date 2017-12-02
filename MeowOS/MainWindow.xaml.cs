@@ -1,5 +1,6 @@
 ﻿using MeowOS.FileSystem;
 using MeowOS.FileSystem.Exceptions;
+using MeowOS.ProcScheduler;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -200,6 +201,11 @@ namespace MeowOS
             new FileSystemPropertiesWindow(fsctrl.SuperBlock).ShowDialog();
         }
 
+        private void MenuItem_schedulerClick(object sender, RoutedEventArgs e)
+        {
+            new SchedulerWindow().ShowDialog();
+        }
+
         private void logout(object sender, RoutedEventArgs e)
         {
             fsctrl.closeSpace();
@@ -302,7 +308,7 @@ namespace MeowOS
 
         private void copyCmd()
         {
-            writeToBuffer(selection.FileHeader.toByteArray(false), fsctrl.readFile(selection.FileHeader, false), null);
+            writeToBuffer(selection.FileHeader.toByteArray(), fsctrl.readFile(selection.FileHeader, false), null);
         }
 
         private void MenuItem_Cut_Click(object sender, RoutedEventArgs e)
@@ -312,7 +318,7 @@ namespace MeowOS
 
         private void cutCmd()
         {
-            writeToBuffer(selection.FileHeader.toByteArray(false), null, fsctrl.CurrDir);
+            writeToBuffer(selection.FileHeader.toByteArray(), null, fsctrl.CurrDir);
         }
 
         private void writeToBuffer(byte[] fh, byte[] data, string restorePath)
@@ -419,7 +425,7 @@ namespace MeowOS
             FilePropertiesWindow fpw = new FilePropertiesWindow(selection.FileHeader);
             if (fpw.ShowDialog().Value)
             {
-                fsctrl.writeBytes(headerOffset, selection.FileHeader.toByteArray(false));
+                fsctrl.writeBytes(headerOffset, selection.FileHeader.toByteArray());
                 selection.refresh();
             }
         }
@@ -487,12 +493,6 @@ namespace MeowOS
             openItem.IsEnabled = deleteItem.IsEnabled = copyItem.IsEnabled = cutItem.IsEnabled = propertiesItem.IsEnabled = selection != null;
             pasteItem.IsEnabled = bufferFH != null;
             downloadItem.IsEnabled = selection != null && !selection.FileHeader.IsDirectory;
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            foreach (Window window in OwnedWindows)
-                window.Close();
         }
     }
 }

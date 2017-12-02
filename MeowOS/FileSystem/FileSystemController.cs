@@ -20,6 +20,7 @@ namespace MeowOS.FileSystem
         private BinaryWriter bw = null;
         private BinaryReader br = null;
         private SuperBlock superBlock;
+
         public SuperBlock SuperBlock
         {
             get { return superBlock; }
@@ -208,7 +209,7 @@ namespace MeowOS.FileSystem
                 }
                 if (posToWrite + FileHeader.SIZE > superBlock.RootSize)
                     throw new RootdirOutOfSpaceException();
-                rootDir = rootDir.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(rootDir.Skip(posToWrite + FileHeader.SIZE)).ToArray();
+                rootDir = rootDir.Take(posToWrite).Concat(fileHeader.toByteArray()).Concat(rootDir.Skip(posToWrite + FileHeader.SIZE)).ToArray();
                 writeArea(Areas.ROOTDIR);
             }
             else
@@ -236,9 +237,9 @@ namespace MeowOS.FileSystem
                         posToWrite += FileHeader.SIZE;
                 }
                 if (posToWrite + FileHeader.SIZE > superBlock.RootSize)
-                    directory = directory.Concat(fileHeader.toByteArray(false)).ToArray();
+                    directory = directory.Concat(fileHeader.toByteArray()).ToArray();
                 else
-                    directory = directory.Take(posToWrite).Concat(fileHeader.toByteArray(false)).Concat(directory.Skip(posToWrite + FileHeader.SIZE)).ToArray();
+                    directory = directory.Take(posToWrite).Concat(fileHeader.toByteArray()).Concat(directory.Skip(posToWrite + FileHeader.SIZE)).ToArray();
                 
                 rewriteFile(pathWithoutLastDir, lastDirHeader, directory, checkRights);
             }

@@ -5,14 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MeowOS"
         mc:Ignorable="d"
-        Title="MeowOS" Height="500" Width="750"
-        Closing="Window_Closing">
+        Title="MeowOS" Height="500" Width="750">
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <Menu Height="25" VerticalAlignment="Top" HorizontalAlignment="Stretch">
             <MenuItem Header="Система">
                 <MenuItem Header="Менеджер пользователей" Click="MenuItem_UsersManager_Click"/>
                 <Separator/>
                 <MenuItem Header="Сведения о файловой системе" Click="MenuItem_fsProperties_Click"/>
+                <Separator/>
+                <MenuItem Header="Планировщик процессов" Click="MenuItem_schedulerClick"/>
                 <Separator/>
                 <MenuItem Header="Выйти из системы" Click="logout"/>
             </MenuItem>
