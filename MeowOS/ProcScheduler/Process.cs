@@ -21,11 +21,18 @@ namespace MeowOS.ProcScheduler
             set => priority = value;
         }
 
+        private States prevState;
+        public States PrevState => prevState;
+
         private States state;
         public States State
         {
             get => state;
-            set => state = value;
+            set
+            {
+                prevState = state;
+                state = value;
+            }
         }
 
         private int burst;

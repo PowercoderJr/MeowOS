@@ -1,0 +1,22 @@
+﻿<UserControl x:Class="MeowOS.ProcScheduler.ProcessView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:MeowOS.ProcScheduler"
+             mc:Ignorable="d" 
+             d:DesignHeight="53" d:DesignWidth="270">
+    <UserControl.ContextMenu>
+        <ContextMenu Opened="ContextMenu_Opened">
+            <MenuItem Name="chPriorityMenuItem" Header="Сменить приоритет"/>
+            <MenuItem Name="killMenuItem" Header="Убить"/>
+        </ContextMenu>
+    </UserControl.ContextMenu>
+    <Grid>
+        <Label Name="pidLabel" Content="PID: 99" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="12"/>
+        <Label Name="burstLabel" Content="Burst: 99" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="12" Margin="52,0,0,0"/>
+        <Label Name="bornLabel" Content="Время появления: 9999" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="12" Margin="113,0,-2,0"/>
+        <Label Name="priorityLabel" Content="Приоритет: ABSOLUTE" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="12" Margin="0,27,0,0"/>
+        <Label Name="stateLabel" Content="Состояние: UNBORN" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="12" Margin="137,27,-10,0"/>
+    </Grid>
+</UserControl>

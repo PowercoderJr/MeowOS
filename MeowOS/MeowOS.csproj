@@ -82,6 +82,9 @@
       <DependentUpon>FileViewerWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="ProcScheduler\Process.cs" />
+    <Compile Include="ProcScheduler\ProcessView.xaml.cs">
+      <DependentUpon>ProcessView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ProcScheduler\RRProcQueue.cs" />
     <Compile Include="ProcScheduler\RRQueue.cs" />
     <Compile Include="ProcScheduler\Scheduler.cs" />
@@ -156,6 +159,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="ProcScheduler\ProcessView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="ProcScheduler\SchedulerWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

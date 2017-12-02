@@ -16,6 +16,7 @@ namespace MeowOS.ProcScheduler
         public const int AVAILABLE_MEM = 1024;
         
         private int freeMem;
+        public int FreeMem => freeMem;
         private Process[] procs;
         public Process[] Procs => procs;
         private int[] bornTimes;
@@ -28,8 +29,13 @@ namespace MeowOS.ProcScheduler
             get => unitsAmount;
             set => unitsAmount = value;
         }
-        private RRQueue<RRProcQueue> rrq;
         private int currUnit;
+        public int CurrUnit => currUnit;
+        private RRQueue<RRProcQueue> rrq;
+        public RRQueue<RRProcQueue> RRQ => rrq;
+
+        private bool quantumEndedFlag;
+        public bool QuantumEndedFlag => quantumEndedFlag;
 
         public void init(int procAmount, int maxBurst, Log log)
         {
@@ -39,26 +45,21 @@ namespace MeowOS.ProcScheduler
             this.log = log;
             unitsAmount = 0;
             freeMem = AVAILABLE_MEM;
+            quantumEndedFlag = false;
 
             Random rnd = new Random();
             for (int i = 0; i < procAmount; ++i)
             {
-                int j;
-                do
-                {
-                    j = rnd.Next(procAmount);
-                } while (procs[j] != null);
-
-                procs[j] = new Process(i + 1, (Process.Priorities)rnd.Next(Enum.GetNames(typeof(Process.Priorities)).Length),
+                procs[i] = new Process(i + 1, (Process.Priorities)rnd.Next(Enum.GetNames(typeof(Process.Priorities)).Length),
                     rnd.Next(maxBurst) + 1, rnd.Next(AVAILABLE_MEM) + 1);
-                bornTimes[j] = rnd.Next(unitsAmount) + 1;
-                unitsAmount += procs[j].Burst;
+                bornTimes[i] = rnd.Next(unitsAmount) + 1;
+                unitsAmount += procs[i].Burst;
                 log("Сгенерирован процесс: " +
-                    "PID = " + procs[j].PID +
-                    ", приоритет = " + procs[j].Priority +
-                    ", burst = " + procs[j].Burst +
-                    ", потребляемая память = " + procs[j].MemRequired +
-                    ", время появления = " + bornTimes[j]);
+                    "PID = " + procs[i].PID +
+                    ", приоритет = " + procs[i].Priority +
+                    ", burst = " + procs[i].Burst +
+                    ", потребляемая память = " + procs[i].MemRequired +
+                    ", время появления = " + bornTimes[i]);
             }
 
             rrq = new RRQueue<RRProcQueue>(RRQ_SPIN_PERIOD);
@@ -67,18 +68,18 @@ namespace MeowOS.ProcScheduler
             currUnit = 1;
         }
 
-        public bool doUnit()
+        public int doUnit()
         {
-            //TODO 02.12: обработать ситуацию, когда на данном шагу нет выполняющихся процессов, но currUnit < unitsAmount
             log("--- ШАГ " + currUnit + " ---");
             for (int i = 0; i < procAmount; ++i)
-                if (bornTimes[i] == currUnit)
+                if (bornTimes[i] == currUnit && procs[i].State == Process.States.UNBORN)
                 {
                     enqProcByPriority(procs[i]);
                     procs[i].State = Process.States.CREATED;
                 }
 
             bool unitDone = false;
+            int activePID = -1;
             do
             {
                 while (rrq.Peek().Count > 0 && rrq.Peek().Peek().State == Process.States.KILLED)
@@ -96,80 +97,87 @@ namespace MeowOS.ProcScheduler
                         " отработала достаточно времени, выполняется поиск следующей непустой очереди");
                     rrq.Spin();
                 }
-                int qspins = 0;
-                while (rrq.Peek().Count == 0 && qspins < QUEUE_AMOUNT)
+                int qSpins = 0;
+                while (rrq.Peek().Count == 0 && qSpins < QUEUE_AMOUNT)
                 {
                     rrq.Spin();
-                    ++qspins;
+                    ++qSpins;
                 }
-                if (qspins == QUEUE_AMOUNT)
+                if (qSpins == QUEUE_AMOUNT)
                 {
                     log("Ни в одной из очередей нет процессов");
-                    return false;
+                    unitDone = true;
                 }
 
-                Process currProc = rrq.Peek().Peek();
-                switch (currProc.State)
+                if (!unitDone)
                 {
-                    case Process.States.CREATED:
-                    case Process.States.WAITING:
-                        if (currProc.MemRequired > freeMem)
-                        {
-                            string priorityIncreased = "";
-                            Process.Priorities oldPriority = currProc.Priority;
-                            if (currProc.Priority < Process.Priorities.HIGH)
+                    Process currProc = rrq.Peek().Peek();
+                    switch (currProc.State)
+                    {
+                        case Process.States.CREATED:
+                        case Process.States.WAITING:
+                            if (currProc.MemRequired > freeMem)
                             {
-                                priorityIncreased = " повысил свой приоритет и";
-                                ++currProc.Priority;
-                                enqProcByPriority(rrq.Peek().Dequeue());
+                                string priorityIncreased = "";
+                                Process.Priorities oldPriority = currProc.Priority;
+                                if (currProc.Priority < Process.Priorities.HIGH)
+                                {
+                                    priorityIncreased = " повысил свой приоритет и";
+                                    ++currProc.Priority;
+                                    enqProcByPriority(rrq.Peek().Dequeue());
 
+                                }
+                                else
+                                    rrq.Peek().Spin();
+
+                                currProc.State = Process.States.WAITING;
+                                log("Процесс " + currProc.PID + " (" + oldPriority + ")" + priorityIncreased +
+                                    " отправляется в конец очереди: требуется " + currProc.MemRequired +
+                                    " байт памяти, доступно всего " + freeMem);
+                                --rrq.BeforeSpin;
                             }
                             else
+                            {
+                                log("Процесс " + currProc + " начал выполнение (" + currProc.MemRequired + " байт памяти выделено)");
+                                freeMem -= currProc.MemRequired;
+                                currProc.State = Process.States.RUNNING;
+                            }
+                            break;
+                        case Process.States.READY:
+                        case Process.States.RUNNING:
+                            --currProc.Burst;
+                            log("Процесс " + currProc + " отработал одну единицу времени, осталось " + currProc.Burst);
+                            if (currProc.Burst == 0)
+                            {
+                                log("Процесс " + currProc + " звершил выполнение (" + currProc.MemRequired + " байт памяти освобождено)");
+                                rrq.Peek().Dequeue();
+                                rrq.Peek().BeforeSpin = 0;
+                                freeMem += currProc.MemRequired;
+                                currProc.State = Process.States.KILLED;
+                            }
+                            else
+                                --rrq.Peek().BeforeSpin;
+
+                            quantumEndedFlag = rrq.Peek().BeforeSpin == 0;
+                            if (quantumEndedFlag)
+                            {
+                                log("Завершился очередной квант очереди процессов с приоритетом " + currProc.Priority);
+                                if (currProc.State == Process.States.RUNNING)
+                                    currProc.State = Process.States.READY;
                                 rrq.Peek().Spin();
-
-                            currProc.State = Process.States.WAITING;
-                            log("Процесс " + currProc.PID + " (" + oldPriority + ")" + priorityIncreased +
-                                " отправляется в конец очереди: требуется " + currProc.MemRequired +
-                                " байт памяти, доступно всего " + freeMem);
-                            --rrq.BeforeSpin;
-                        }
-                        else
-                        {
-                            log("Процесс " + currProc + " начал выполнение");
-                            freeMem -= currProc.MemRequired;
-                            currProc.State = Process.States.RUNNING;
-                        }
-                        break;
-                    case Process.States.READY:
-                    case Process.States.RUNNING:
-                        --currProc.Burst;
-                        log("Процесс " + currProc + " отработал одну единицу времени, осталось " + currProc.Burst);
-                        if (currProc.Burst == 0)
-                        {
-                            log("Процесс " + currProc + " звершил выполнение");
-                            rrq.Peek().Dequeue();
-                            rrq.Peek().BeforeSpin = 0;
-                            freeMem += currProc.MemRequired;
-                            currProc.State = Process.States.KILLED;
-                        }
-                        else
-                            --rrq.Peek().BeforeSpin;
-
-                        if (rrq.Peek().BeforeSpin == 0)
-                        {
-                            log("Завершился очередной квант очереди процессов с приоритетом " + currProc.Priority);
-                            rrq.Peek().Spin();
-                            --rrq.BeforeSpin;
-                        }
-                        ++currUnit;
-                        unitDone = true;
-                        break;
-                    default:
-                        log("Не предусмотрено действий для состояния " + currProc.State);
-                        break;
+                                --rrq.BeforeSpin;
+                            }
+                            unitDone = true;
+                            activePID = currProc.PID;
+                            break;
+                        default:
+                            log("Не предусмотрено действий для состояния " + currProc.State);
+                            break;
+                    }
                 }
             } while (!unitDone);
-            return true;
+            ++currUnit;
+            return activePID;
         }
 
         public void clear()
@@ -180,6 +188,7 @@ namespace MeowOS.ProcScheduler
                 rrq.Clear();
             unitsAmount = 0;
             currUnit = 0;
+            quantumEndedFlag = false;
         }
 
         private void enqProcByPriority(Process proc)
