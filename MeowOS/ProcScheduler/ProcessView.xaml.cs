@@ -20,7 +20,7 @@ namespace MeowOS.ProcScheduler
     /// </summary>
     public partial class ProcessView : UserControl
     {
-        public const int CONTROL_WIDTH = 270;
+        public const int CONTROL_WIDTH = 290;
         public const int CONTROL_HEIGHT = 53;
         private static readonly Brush[] PRIORITY_BRUSHES = { Brushes.LimeGreen, Brushes.Yellow, Brushes.Orange, Brushes.OrangeRed };
         private Process proc;
@@ -29,21 +29,20 @@ namespace MeowOS.ProcScheduler
         public ProcessView()
         {
             InitializeComponent();
-            Width = CONTROL_WIDTH;
-            Height = CONTROL_HEIGHT;
         }
 
         public ProcessView(Process proc, int bornTime) : this()
         {
             this.proc = proc;
             refresh();
-            bornLabel.Content = "Время появления: " + bornTime.ToString();
+            pidLabel.Content = "PID: " + proc.PID.ToString();
+            memLabel.Content = "Память: " + proc.MemRequired.ToString();
+            bornLabel.Content = "Рождение: " + bornTime.ToString();
         }
 
         public void refresh()
         {
             Background = PRIORITY_BRUSHES[(int)proc.Priority];
-            pidLabel.Content = "PID: " + proc.PID.ToString();
             burstLabel.Content = "Burst: " + proc.Burst.ToString();
             priorityLabel.Content = "Приоритет: " + proc.Priority.ToString();
             stateLabel.Content = "Состояние: " + proc.State.ToString();
@@ -51,7 +50,7 @@ namespace MeowOS.ProcScheduler
 
         private void ContextMenu_Opened(object sender, RoutedEventArgs e)
         {
-            chPriorityMenuItem.IsEnabled = killMenuItem.IsEnabled = proc.State != Process.States.KILLED;
+            chPriorityMenuItem.IsEnabled = killMenuItem.IsEnabled = proc.State != Process.States.COMPLETED;
         }
     }
 }

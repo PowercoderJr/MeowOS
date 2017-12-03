@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MeowOS.ProcScheduler
 {
-    class Scheduler
+    public class Scheduler
     {
         public delegate void Log(string str);
         private Log log;
@@ -32,7 +32,6 @@ namespace MeowOS.ProcScheduler
         private int currUnit;
         public int CurrUnit => currUnit;
         private RRQueue<RRProcQueue> rrq;
-        public RRQueue<RRProcQueue> RRQ => rrq;
 
         private bool quantumEndedFlag;
         public bool QuantumEndedFlag => quantumEndedFlag;
@@ -74,15 +73,16 @@ namespace MeowOS.ProcScheduler
             for (int i = 0; i < procAmount; ++i)
                 if (bornTimes[i] == currUnit && procs[i].State == Process.States.UNBORN)
                 {
+                    procs[i].State = Process.States.BORN;
                     enqProcByPriority(procs[i]);
-                    procs[i].State = Process.States.CREATED;
+                    log("Процесс " + procs[i] + " родился");
                 }
 
             bool unitDone = false;
             int activePID = -1;
             do
             {
-                while (rrq.Peek().Count > 0 && rrq.Peek().Peek().State == Process.States.KILLED)
+                while (rrq.Peek().Count > 0 && (rrq.Peek().Peek().State == Process.States.COMPLETED || rrq.Peek().Peek().State == Process.States.KILLED))
                     rrq.Peek().Dequeue();
 
                 if (rrq.Peek().Count == 0)
@@ -114,10 +114,11 @@ namespace MeowOS.ProcScheduler
                     Process currProc = rrq.Peek().Peek();
                     switch (currProc.State)
                     {
-                        case Process.States.CREATED:
+                        case Process.States.BORN:
                         case Process.States.WAITING:
                             if (currProc.MemRequired > freeMem)
                             {
+                                currProc.State = Process.States.WAITING;
                                 string priorityIncreased = "";
                                 Process.Priorities oldPriority = currProc.Priority;
                                 if (currProc.Priority < Process.Priorities.HIGH)
@@ -130,7 +131,6 @@ namespace MeowOS.ProcScheduler
                                 else
                                     rrq.Peek().Spin();
 
-                                currProc.State = Process.States.WAITING;
                                 log("Процесс " + currProc.PID + " (" + oldPriority + ")" + priorityIncreased +
                                     " отправляется в конец очереди: требуется " + currProc.MemRequired +
                                     " байт памяти, доступно всего " + freeMem);
@@ -138,22 +138,23 @@ namespace MeowOS.ProcScheduler
                             }
                             else
                             {
+                                currProc.State = Process.States.RUNNING;
                                 log("Процесс " + currProc + " начал выполнение (" + currProc.MemRequired + " байт памяти выделено)");
                                 freeMem -= currProc.MemRequired;
-                                currProc.State = Process.States.RUNNING;
                             }
                             break;
                         case Process.States.READY:
                         case Process.States.RUNNING:
+                            currProc.State = Process.States.RUNNING;
                             --currProc.Burst;
                             log("Процесс " + currProc + " отработал одну единицу времени, осталось " + currProc.Burst);
                             if (currProc.Burst == 0)
                             {
+                                currProc.State = Process.States.COMPLETED;
                                 log("Процесс " + currProc + " звершил выполнение (" + currProc.MemRequired + " байт памяти освобождено)");
                                 rrq.Peek().Dequeue();
                                 rrq.Peek().BeforeSpin = 0;
                                 freeMem += currProc.MemRequired;
-                                currProc.State = Process.States.KILLED;
                             }
                             else
                                 --rrq.Peek().BeforeSpin;
@@ -161,9 +162,9 @@ namespace MeowOS.ProcScheduler
                             quantumEndedFlag = rrq.Peek().BeforeSpin == 0;
                             if (quantumEndedFlag)
                             {
-                                log("Завершился очередной квант очереди процессов с приоритетом " + currProc.Priority);
                                 if (currProc.State == Process.States.RUNNING)
                                     currProc.State = Process.States.READY;
+                                log("Завершился очередной квант очереди процессов с приоритетом " + currProc.Priority);
                                 rrq.Peek().Spin();
                                 --rrq.BeforeSpin;
                             }

@@ -9,7 +9,7 @@ namespace MeowOS.ProcScheduler
     public class Process
     {
         public enum Priorities { LOW = 0, NORMAL = 1, HIGH = 2, ABSOLUTE = 3 }
-        public enum States { UNBORN, CREATED, READY, RUNNING, WAITING, KILLED }
+        public enum States { UNBORN, BORN, READY, RUNNING, WAITING, COMPLETED, KILLED }
 
         private int pid;
         public int PID => pid;
@@ -21,18 +21,11 @@ namespace MeowOS.ProcScheduler
             set => priority = value;
         }
 
-        private States prevState;
-        public States PrevState => prevState;
-
         private States state;
         public States State
         {
             get => state;
-            set
-            {
-                prevState = state;
-                state = value;
-            }
+            set => state = value;
         }
 
         private int burst;

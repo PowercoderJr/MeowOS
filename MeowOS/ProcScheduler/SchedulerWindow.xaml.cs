@@ -43,9 +43,16 @@ namespace MeowOS.ProcScheduler
 
         private void clear()
         {
-            grid.Children.Clear();
-            grid.RowDefinitions.Clear();
-            grid.ColumnDefinitions.Clear();
+            stepBtn.IsEnabled = toQuantumBtn.IsEnabled = toEndBtn.IsEnabled = false;
+            unitsGrid.Children.Clear();
+            unitsGrid.RowDefinitions.Clear();
+            unitsGrid.ColumnDefinitions.Clear();
+            processesGrid.Children.Clear();
+            processesGrid.RowDefinitions.Clear();
+            processesGrid.ColumnDefinitions.Clear();
+            actionGrid.Children.Clear();
+            actionGrid.RowDefinitions.Clear();
+            actionGrid.ColumnDefinitions.Clear();
             logTextbox.Clear();
             scheduler.clear();
             frMemLabel.Content = "Свободная память: " + Scheduler.AVAILABLE_MEM;
@@ -53,7 +60,6 @@ namespace MeowOS.ProcScheduler
 
         private void generateBtn_Click(object sender, RoutedEventArgs e)
         {
-            stepBtn.IsEnabled = toQuantumBtn.IsEnabled = toEndBtn.IsEnabled = false;
             int procAmount = procAmountEdit.Text.Length > 0 ? int.Parse(procAmountEdit.Text) : 0;
             if (procAmount <= 0)
             {
@@ -71,53 +77,72 @@ namespace MeowOS.ProcScheduler
 
             clear();
             scheduler.init(procAmount, maxBurst, log);
+
+            /*RowDefinition firstRow = new RowDefinition();
+            firstRow.Height = new GridLength(30);
+            processesGrid.RowDefinitions.Add(firstRow);
+
+            firstRow = new RowDefinition();
+            firstRow.Height = new GridLength(30);
+            actionGrid.RowDefinitions.Add(firstRow);*/
+
             pvs = new ProcessView[procAmount];
             string[] menuItemsHeaders = Enum.GetNames(typeof(Process.Priorities));
-
-            RowDefinition firstRow = new RowDefinition();
-            firstRow.Height = new GridLength(30);
-            grid.RowDefinitions.Add(firstRow);
-            for (int i = 1; i <= procAmount; ++i)
+            for (int i = 0; i < procAmount; ++i)
             {
                 RowDefinition row = new RowDefinition();
                 row.Height = new GridLength(ProcessView.CONTROL_HEIGHT);
-                grid.RowDefinitions.Add(row);
-                pvs[i - 1] = new ProcessView(scheduler.Procs[i - 1], scheduler.BornTimes[i - 1]);
-                pvs[i - 1].SetValue(Grid.RowProperty, i);
-                pvs[i - 1].SetValue(Grid.ColumnProperty, 0);
-                grid.Children.Add(pvs[i - 1]);
+                processesGrid.RowDefinitions.Add(row);
+                pvs[i] = new ProcessView(scheduler.Procs[i], scheduler.BornTimes[i]);
+                pvs[i].SetValue(Grid.RowProperty, i);
+                pvs[i].SetValue(Grid.ColumnProperty, 0);
+                processesGrid.Children.Add(pvs[i]);
+
+                row = new RowDefinition();
+                row.Height = new GridLength(ProcessView.CONTROL_HEIGHT);
+                actionGrid.RowDefinitions.Add(row);
+
                 for (int j = 0; j < menuItemsHeaders.Length; ++j)
                 {
                     MenuItem item = new MenuItem();
                     item.Header = menuItemsHeaders[j];
                     item.Tag = j;
                     item.Click += priorityMenuItemClick;
-                    pvs[i - 1].chPriorityMenuItem.Items.Add(item);
+                    pvs[i].chPriorityMenuItem.Items.Add(item);
                 }
-                pvs[i - 1].killMenuItem.Click += killMenuItemClick;
+                pvs[i].killMenuItem.Click += killMenuItemClick;
             }
             RowDefinition lastRow = new RowDefinition();
+            lastRow.Height = new GridLength(ProcessView.CONTROL_HEIGHT + 17);
+            processesGrid.RowDefinitions.Add(lastRow);
+            lastRow = new RowDefinition();
             lastRow.Height = new GridLength(ProcessView.CONTROL_HEIGHT);
-            grid.RowDefinitions.Add(lastRow);
+            actionGrid.RowDefinitions.Add(lastRow);
 
-            ColumnDefinition firstColumn = new ColumnDefinition();
+            /*ColumnDefinition firstColumn = new ColumnDefinition();
             firstColumn.Width = new GridLength(ProcessView.CONTROL_WIDTH);
-            grid.ColumnDefinitions.Add(firstColumn);
-            for (int i = 1; i <= scheduler.UnitsAmount; ++i)
+            actionGrid.ColumnDefinitions.Add(firstColumn);*/
+            for (int i = 0; i < scheduler.UnitsAmount; ++i)
             {
                 ColumnDefinition col = new ColumnDefinition();
                 col.Width = new GridLength(ProcessView.CONTROL_HEIGHT);
-                grid.ColumnDefinitions.Add(col);
+                unitsGrid.ColumnDefinitions.Add(col);
+                col = new ColumnDefinition();
+                col.Width = new GridLength(ProcessView.CONTROL_HEIGHT);
+                actionGrid.ColumnDefinitions.Add(col);
                 Label l = new Label();
-                l.Content = i.ToString();
+                l.Content = (i + 1).ToString();
                 l.SetValue(Grid.RowProperty, 0);
                 l.SetValue(Grid.ColumnProperty, i);
                 l.HorizontalContentAlignment = HorizontalAlignment.Center;
-                grid.Children.Add(l);
+                unitsGrid.Children.Add(l);
             }
             ColumnDefinition lastCol = new ColumnDefinition();
+            lastCol.Width = new GridLength(ProcessView.CONTROL_HEIGHT + 17);
+            unitsGrid.ColumnDefinitions.Add(lastCol);
+            lastCol = new ColumnDefinition();
             lastCol.Width = new GridLength(ProcessView.CONTROL_HEIGHT);
-            grid.ColumnDefinitions.Add(lastCol);
+            actionGrid.ColumnDefinitions.Add(lastCol);
             stepBtn.IsEnabled = toQuantumBtn.IsEnabled = toEndBtn.IsEnabled = true;
         }
 
@@ -144,7 +169,6 @@ namespace MeowOS.ProcScheduler
 
         private void clearBtn_Click(object sender, RoutedEventArgs e)
         {
-            stepBtn.IsEnabled = toQuantumBtn.IsEnabled = toEndBtn.IsEnabled = false;
             clear();
         }
 
@@ -152,19 +176,32 @@ namespace MeowOS.ProcScheduler
         {
             int pid = scheduler.doUnit();
             if (pid > 0)
+            {
                 pvs[pid - 1].refresh();
+                actionGrid.Children.Add(buildRectangle(pid - 1, scheduler.CurrUnit - 2, Brushes.Black));
+            }
+            if (autoscrollChb.IsChecked.Value)
+            {
+                int targetX = (scheduler.CurrUnit - 1) * ProcessView.CONTROL_HEIGHT;
+                int leftBorder = (int)actionSV.HorizontalOffset, rightBorder = (int)(actionSV.HorizontalOffset + actionSV.ActualWidth);
+                if (targetX < leftBorder || targetX > rightBorder)
+                    actionSV.ScrollToHorizontalOffset(targetX - actionSV.ActualWidth + 21);
+
+                if (pid > 0)
+                {
+                    int targetY = pid * ProcessView.CONTROL_HEIGHT;
+                    int topBorder = (int)actionSV.VerticalOffset, botBorder = (int)(actionSV.VerticalOffset + actionSV.ActualHeight);
+                    if (targetY < topBorder || targetY > botBorder)
+                        actionSV.ScrollToVerticalOffset(targetY - actionSV.ActualHeight + 21);
+                }
+            }
+
             for (int i = 0; i < pvs.Length; ++i)
             {
-                if (pvs[i].Proc.State == Process.States.RUNNING || pvs[i].Proc.State == Process.States.READY || pvs[i].Proc.State == Process.States.WAITING)
-                {
-                    Rectangle r = new Rectangle();
-                    r.HorizontalAlignment = HorizontalAlignment.Stretch;
-                    r.VerticalAlignment = VerticalAlignment.Stretch;
-                    r.Fill = pvs[i].Proc.State == Process.States.RUNNING ? Brushes.Black : Brushes.Gray;
-                    r.SetValue(Grid.RowProperty, i + 1);
-                    r.SetValue(Grid.ColumnProperty, scheduler.CurrUnit - 1);
-                    grid.Children.Add(r);
-                }
+                Process.States state = pvs[i].Proc.State;
+                if (i + 1 != pid && (state == Process.States.READY || state == Process.States.WAITING || state == Process.States.BORN))
+                    actionGrid.Children.Add(buildRectangle(i, scheduler.CurrUnit - 2, Brushes.Gray));
+                pvs[i].refresh();
             }
             frMemLabel.Content = "Свободная память: " + scheduler.FreeMem;
         }
@@ -182,6 +219,38 @@ namespace MeowOS.ProcScheduler
             int n = scheduler.UnitsAmount;
             for (int i = scheduler.CurrUnit; i <= n; ++i)
                 stepBtn_Click(sender, e);
+        }
+
+        private Rectangle buildRectangle(int row, int column, Brush fillBrush)
+        {
+            Rectangle r = new Rectangle();
+            r.HorizontalAlignment = HorizontalAlignment.Stretch;
+            r.VerticalAlignment = VerticalAlignment.Stretch;
+            r.Fill = fillBrush;
+            r.SetValue(Grid.RowProperty, row);
+            r.SetValue(Grid.ColumnProperty, column);
+            return r;
+        }
+
+        private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (sender == actionSV)
+            {
+                if (actionSV.HorizontalOffset != unitsSV.HorizontalOffset)
+                    unitsSV.ScrollToHorizontalOffset(e.HorizontalOffset);
+                if (actionSV.VerticalOffset != processesSV.VerticalOffset)
+                    processesSV.ScrollToVerticalOffset(e.VerticalOffset);
+            }
+            else if (sender == unitsSV)
+            {
+                if (actionSV.HorizontalOffset != unitsSV.HorizontalOffset)
+                    actionSV.ScrollToHorizontalOffset(e.HorizontalOffset);
+            }
+            else if (sender == processesSV)
+            {
+                if (actionSV.VerticalOffset != processesSV.VerticalOffset)
+                    actionSV.ScrollToVerticalOffset(e.VerticalOffset);
+            }
         }
     }
 }

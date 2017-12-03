@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MeowOS.ProcScheduler"
         mc:Ignorable="d"
-        Title="Планировщик процессов" Height="500" Width="846">
+        Title="Планировщик процессов" Height="500" Width="960">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
@@ -31,10 +31,27 @@
             <Button Name="toEndBtn" HorizontalAlignment="Left" VerticalAlignment="Stretch" Margin="742,0,0,0" Width="85" Click="toEndBtn_Click" IsEnabled="False">
                 <TextBlock TextWrapping="Wrap" TextAlignment="Center" Text="Выполнить до завершения эмуляции"/>
             </Button>
+            <CheckBox Name="autoscrollChb" Content="Автоскроллинг" HorizontalAlignment="Left" Margin="832,22,0,0" VerticalAlignment="Top" IsChecked="True"/>
         </Grid>
-        <ScrollViewer Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible">
-            <Grid Name="grid"  ShowGridLines="True"/>
-        </ScrollViewer>
+        <Grid Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ShowGridLines="True">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30"/>
+                <RowDefinition Height="1*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="290"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            <ScrollViewer Name="unitsSV" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" ScrollChanged="ScrollViewer_ScrollChanged">
+                <Grid Name="unitsGrid" ShowGridLines="True"/>
+            </ScrollViewer>
+            <ScrollViewer Name="processesSV" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" ScrollChanged="ScrollViewer_ScrollChanged">
+                <Grid Name="processesGrid" ShowGridLines="True"/>
+            </ScrollViewer>
+            <ScrollViewer Name="actionSV" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" ScrollChanged="ScrollViewer_ScrollChanged">
+                <Grid Name="actionGrid" ShowGridLines="True"/>
+            </ScrollViewer>
+        </Grid>
         <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
         <TextBox Grid.Row="3" Name="logTextbox" IsReadOnly="True"/>
     </Grid>
