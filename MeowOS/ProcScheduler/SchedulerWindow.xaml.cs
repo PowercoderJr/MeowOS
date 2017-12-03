@@ -14,6 +14,7 @@ using System.Windows.Shapes;
 
 namespace MeowOS.ProcScheduler
 {
+    //TOOD 03.12: добавить создание процессов с пользовательскими параметрами
     /// <summary>
     /// Логика взаимодействия для SchedulerWindow.xaml
     /// </summary>
@@ -55,7 +56,12 @@ namespace MeowOS.ProcScheduler
             actionGrid.ColumnDefinitions.Clear();
             logTextbox.Clear();
             scheduler.clear();
-            frMemLabel.Content = "Свободная память: " + Scheduler.AVAILABLE_MEM;
+            refreshFreeMemLabel();
+        }
+
+        private void refreshFreeMemLabel()
+        {
+            frMemLabel.Content = "Свободная память: " + scheduler.FreeMem;
         }
 
         private void generateBtn_Click(object sender, RoutedEventArgs e)
@@ -78,14 +84,6 @@ namespace MeowOS.ProcScheduler
             clear();
             scheduler.init(procAmount, maxBurst, log);
 
-            /*RowDefinition firstRow = new RowDefinition();
-            firstRow.Height = new GridLength(30);
-            processesGrid.RowDefinitions.Add(firstRow);
-
-            firstRow = new RowDefinition();
-            firstRow.Height = new GridLength(30);
-            actionGrid.RowDefinitions.Add(firstRow);*/
-
             pvs = new ProcessView[procAmount];
             string[] menuItemsHeaders = Enum.GetNames(typeof(Process.Priorities));
             for (int i = 0; i < procAmount; ++i)
@@ -93,7 +91,7 @@ namespace MeowOS.ProcScheduler
                 RowDefinition row = new RowDefinition();
                 row.Height = new GridLength(ProcessView.CONTROL_HEIGHT);
                 processesGrid.RowDefinitions.Add(row);
-                pvs[i] = new ProcessView(scheduler.Procs[i], scheduler.BornTimes[i]);
+                pvs[i] = new ProcessView(scheduler.Procs[i]);
                 pvs[i].SetValue(Grid.RowProperty, i);
                 pvs[i].SetValue(Grid.ColumnProperty, 0);
                 processesGrid.Children.Add(pvs[i]);
@@ -118,10 +116,7 @@ namespace MeowOS.ProcScheduler
             lastRow = new RowDefinition();
             lastRow.Height = new GridLength(ProcessView.CONTROL_HEIGHT);
             actionGrid.RowDefinitions.Add(lastRow);
-
-            /*ColumnDefinition firstColumn = new ColumnDefinition();
-            firstColumn.Width = new GridLength(ProcessView.CONTROL_WIDTH);
-            actionGrid.ColumnDefinitions.Add(firstColumn);*/
+            
             for (int i = 0; i < scheduler.UnitsAmount; ++i)
             {
                 ColumnDefinition col = new ColumnDefinition();
@@ -150,15 +145,37 @@ namespace MeowOS.ProcScheduler
         {
             MenuItem item = sender as MenuItem;
             ProcessView pv = ((item.Parent as MenuItem).Parent as ContextMenu).PlacementTarget as ProcessView;
+            Process.Priorities old = pv.Proc.Priority;
             pv.Proc.Priority = (Process.Priorities)item.Tag;
-            pv.refresh();
+            if (pv.Proc.Priority != old)
+            {
+                string putToQueue = "";
+                if (pv.Proc.IsAlive)
+                {
+                    scheduler.deqProc(pv.Proc);
+                    scheduler.enqProcByPriority(pv.Proc);
+                    if (pv.Proc.State == Process.States.RUNNING)
+                    {
+                        pv.Proc.State = Process.States.READY;
+                        scheduler.endCurrQuantum();
+                    }
+                    putToQueue = " и помещён в конец соответствующей очереди";
+                }
+                pv.refresh();
+                log("Процес " + pv.Proc.PID + " (" + old + ") сменил приоритет на " + pv.Proc.Priority + putToQueue);
+            }
         }
 
         private void killMenuItemClick(object sender, RoutedEventArgs e)
         {
             ProcessView pv = ((sender as MenuItem).Parent as ContextMenu).PlacementTarget as ProcessView;
+            if (pv.Proc.State == Process.States.RUNNING)
+                scheduler.endCurrQuantum();
             pv.Proc.State = Process.States.KILLED;
             pv.refresh();
+            scheduler.FreeMem += pv.Proc.MemRequired;
+            refreshFreeMemLabel();
+            log("Процес " + pv.Proc + " убит (" + pv.Proc.MemRequired + " байт памяти освобождено)");
         }
 
         private void log(string str)
@@ -203,7 +220,7 @@ namespace MeowOS.ProcScheduler
                     actionGrid.Children.Add(buildRectangle(i, scheduler.CurrUnit - 2, Brushes.Gray));
                 pvs[i].refresh();
             }
-            frMemLabel.Content = "Свободная память: " + scheduler.FreeMem;
+            refreshFreeMemLabel();
         }
 
         private void toQuantumBtn_Click(object sender, RoutedEventArgs e)

@@ -16,11 +16,13 @@ namespace MeowOS.ProcScheduler
         public const int AVAILABLE_MEM = 1024;
         
         private int freeMem;
-        public int FreeMem => freeMem;
+        public int FreeMem
+        {
+            get => freeMem;
+            set => freeMem = value;
+        }
         private Process[] procs;
         public Process[] Procs => procs;
-        private int[] bornTimes;
-        public int[] BornTimes => bornTimes;
         private int procAmount;
         public int ProcAmount => procAmount;
         private int unitsAmount;
@@ -39,7 +41,6 @@ namespace MeowOS.ProcScheduler
         public void init(int procAmount, int maxBurst, Log log)
         {
             procs = new Process[procAmount];
-            bornTimes = new int[procAmount];
             this.procAmount = procAmount;
             this.log = log;
             unitsAmount = 0;
@@ -50,15 +51,14 @@ namespace MeowOS.ProcScheduler
             for (int i = 0; i < procAmount; ++i)
             {
                 procs[i] = new Process(i + 1, (Process.Priorities)rnd.Next(Enum.GetNames(typeof(Process.Priorities)).Length),
-                    rnd.Next(maxBurst) + 1, rnd.Next(AVAILABLE_MEM) + 1);
-                bornTimes[i] = rnd.Next(unitsAmount) + 1;
+                    rnd.Next(maxBurst) + 1, rnd.Next(AVAILABLE_MEM) + 1, rnd.Next(unitsAmount) + 1);
                 unitsAmount += procs[i].Burst;
                 log("Сгенерирован процесс: " +
                     "PID = " + procs[i].PID +
                     ", приоритет = " + procs[i].Priority +
                     ", burst = " + procs[i].Burst +
                     ", потребляемая память = " + procs[i].MemRequired +
-                    ", время появления = " + bornTimes[i]);
+                    ", время появления = " + procs[i].BornTime);
             }
 
             rrq = new RRQueue<RRProcQueue>(RRQ_SPIN_PERIOD);
@@ -71,7 +71,7 @@ namespace MeowOS.ProcScheduler
         {
             log("--- ШАГ " + currUnit + " ---");
             for (int i = 0; i < procAmount; ++i)
-                if (bornTimes[i] == currUnit && procs[i].State == Process.States.UNBORN)
+                if (procs[i].BornTime == currUnit && procs[i].State == Process.States.UNBORN)
                 {
                     procs[i].State = Process.States.BORN;
                     enqProcByPriority(procs[i]);
@@ -89,7 +89,6 @@ namespace MeowOS.ProcScheduler
                 {
                     log("Очередь процессов с приоритетом " + rrq.Peek().Priority.ToString() +
                         " пуста, выполняется поиск следующей непустой очереди");
-                    rrq.Spin();
                 }
                 else if (rrq.BeforeSpin == 0)
                 {
@@ -164,9 +163,7 @@ namespace MeowOS.ProcScheduler
                             {
                                 if (currProc.State == Process.States.RUNNING)
                                     currProc.State = Process.States.READY;
-                                log("Завершился очередной квант очереди процессов с приоритетом " + currProc.Priority);
-                                rrq.Peek().Spin();
-                                --rrq.BeforeSpin;
+                                endCurrQuantum();
                             }
                             unitDone = true;
                             activePID = currProc.PID;
@@ -184,17 +181,32 @@ namespace MeowOS.ProcScheduler
         public void clear()
         {
             procs = null;
-            bornTimes = null;
             if (rrq != null)
                 rrq.Clear();
             unitsAmount = 0;
             currUnit = 0;
             quantumEndedFlag = false;
+            freeMem = AVAILABLE_MEM;
         }
 
-        private void enqProcByPriority(Process proc)
+        public void endCurrQuantum()
+        {
+            log("Завершился очередной квант очереди процессов с приоритетом " + rrq.Peek().Priority);
+            rrq.Peek().Spin();
+            --rrq.BeforeSpin;
+        }
+
+        public void enqProcByPriority(Process proc)
         {
             rrq.Find(item => item.Priority == proc.Priority).Enqueue(proc);
+        }
+
+        public bool deqProc(Process proc)
+        {
+            bool removed = false;
+            for (int i = 0; i < rrq.Count && !removed; ++i)
+                removed = rrq.Peek().Remove(proc);
+            return removed;
         }
     }
 }

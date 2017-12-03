@@ -31,13 +31,13 @@ namespace MeowOS.ProcScheduler
             InitializeComponent();
         }
 
-        public ProcessView(Process proc, int bornTime) : this()
+        public ProcessView(Process proc) : this()
         {
             this.proc = proc;
             refresh();
             pidLabel.Content = "PID: " + proc.PID.ToString();
             memLabel.Content = "Память: " + proc.MemRequired.ToString();
-            bornLabel.Content = "Рождение: " + bornTime.ToString();
+            bornLabel.Content = "Рождение: " + proc.BornTime.ToString();
         }
 
         public void refresh()
@@ -50,7 +50,8 @@ namespace MeowOS.ProcScheduler
 
         private void ContextMenu_Opened(object sender, RoutedEventArgs e)
         {
-            chPriorityMenuItem.IsEnabled = killMenuItem.IsEnabled = proc.State != Process.States.COMPLETED;
+            killMenuItem.IsEnabled = proc.IsAlive;
+            chPriorityMenuItem.IsEnabled = proc.IsAlive || proc.State == Process.States.UNBORN;
         }
     }
 }

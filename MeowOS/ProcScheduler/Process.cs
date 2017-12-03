@@ -27,12 +27,20 @@ namespace MeowOS.ProcScheduler
             get => state;
             set => state = value;
         }
+        public bool IsAlive => state == States.BORN || state == States.READY || state == States.RUNNING || state == States.WAITING;
 
         private int burst;
         public int Burst
         {
             get => burst;
             set => burst = value;
+        }
+
+        private int bornTime;
+        public int BornTime
+        {
+            get => bornTime;
+            set => bornTime = value;
         }
 
         private int memRequired;
@@ -43,12 +51,13 @@ namespace MeowOS.ProcScheduler
             state = States.UNBORN;
         }
 
-        public Process(int pid, Priorities priority, int burst, int memRequired) : this()
+        public Process(int pid, Priorities priority, int burst, int memRequired, int bornTime) : this()
         {
             this.pid = pid;
             this.priority = priority;
             this.burst = burst;
             this.memRequired = memRequired;
+            this.bornTime = bornTime;
         }
 
         public override string ToString()
