@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MeowOS.FileSystem
 {
@@ -12,7 +7,6 @@ namespace MeowOS.FileSystem
     {
         public const ushort CL_FREE         = 0x0000;
         public const ushort CL_SYSTEM       = 0xFFF0;
-        public const ushort CL_ROOTDIR      = 0xFFF1;
         public const ushort CL_WRITING      = 0xFFF2;
         public const ushort CL_BAD          = 0xFFF7;
         public const ushort CL_EOF          = 0xFFFF;
@@ -84,7 +78,6 @@ namespace MeowOS.FileSystem
         {
             ushort i;
             for (i = 0; i < tableSize && table[i] != CL_FREE; ++i);
-            //return i < tableSize ? i : (ushort)(tableSize+1);
             return i; //Если свободных кластеров нет, возвращает значение, выходящее на границы table
         }
     }
