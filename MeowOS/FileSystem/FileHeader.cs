@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.IO;
 using System.Linq;
 
@@ -240,19 +239,33 @@ namespace MeowOS.FileSystem
         
         public byte[] toByteArray(bool expandToCluster = false)
         {
-            ArrayList buffer = new ArrayList(SIZE);
-            buffer.AddRange(UsefulThings.ENCODING.GetBytes(name.ToArray()));
-            buffer.AddRange(UsefulThings.ENCODING.GetBytes(extension.ToArray()));
-            buffer.AddRange(BitConverter.GetBytes(size));
-            buffer.AddRange(BitConverter.GetBytes(accessRights));
-            buffer.Add(flags);
-            buffer.AddRange(BitConverter.GetBytes(uid));
-            buffer.AddRange(BitConverter.GetBytes(gid));
-            buffer.AddRange(BitConverter.GetBytes(firstCluster));
-            buffer.AddRange(BitConverter.GetBytes(chDate));
-            buffer.AddRange(BitConverter.GetBytes(chTime));
-            buffer.AddRange(BitConverter.GetBytes(reserved));
-            return buffer.OfType<byte>().ToArray();
+            if (expandToCluster)
+                throw new InvalidOperationException("Расширение до размера блока не поддерживается для класса FileHeader");
+
+            byte[] buffer = new byte[SIZE];
+            int offset = 0;
+            Buffer.BlockCopy(UsefulThings.ENCODING.GetBytes(name), 0, buffer, offset, NAME_MAX_LENGTH);
+            offset = NAME_MAX_LENGTH;
+            Buffer.BlockCopy(UsefulThings.ENCODING.GetBytes(extension), 0, buffer, offset, EXTENSION_MAX_LENGTH);
+            offset += EXTENSION_MAX_LENGTH;
+            Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, sizeof(uint));
+            offset += sizeof(uint);
+            Buffer.BlockCopy(BitConverter.GetBytes(accessRights), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(flags), 0, buffer, offset, sizeof(byte));
+            offset += sizeof(byte);
+            Buffer.BlockCopy(BitConverter.GetBytes(uid), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(gid), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(firstCluster), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(chDate), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(chTime), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(reserved), 0, buffer, offset, sizeof(uint));
+            return buffer;
         }
 
         public void fromByteArray(byte[] buffer)

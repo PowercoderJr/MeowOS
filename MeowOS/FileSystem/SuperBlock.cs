@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.IO;
 using System.Linq;
 
@@ -101,21 +100,24 @@ namespace MeowOS.FileSystem
 
         public override byte[] toByteArray(bool expandToCluster)
         {
-            ArrayList buffer = new ArrayList(expandToCluster ? clusterSize : SIZE);
-
-            buffer.AddRange(UsefulThings.ENCODING.GetBytes(fsType));
-            buffer.AddRange(BitConverter.GetBytes(clusterSize));
-            buffer.AddRange(BitConverter.GetBytes(rootSize));
-            buffer.AddRange(BitConverter.GetBytes(diskSize));
-            buffer.AddRange(BitConverter.GetBytes(fat1Offset));
-            buffer.AddRange(BitConverter.GetBytes(fat2Offset));
-            buffer.AddRange(BitConverter.GetBytes(rootOffset));
-            buffer.AddRange(BitConverter.GetBytes(dataOffset));
-
-            if (expandToCluster)
-                buffer.AddRange(UsefulThings.ENCODING.GetBytes(new String('\0', clusterSize - SIZE).ToArray()));
-
-            return buffer.OfType<byte>().ToArray();
+            byte[] buffer = new byte[expandToCluster ? clusterSize : SIZE];
+            int offset = 0;
+            Buffer.BlockCopy(UsefulThings.ENCODING.GetBytes(fsType), 0, buffer, offset, FS_TYPE_MAX_LENGTH);
+            offset += FS_TYPE_MAX_LENGTH;
+            Buffer.BlockCopy(BitConverter.GetBytes(clusterSize), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(rootSize), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(diskSize), 0, buffer, offset, sizeof(uint));
+            offset += sizeof(uint);
+            Buffer.BlockCopy(BitConverter.GetBytes(fat1Offset), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(fat2Offset), 0, buffer, offset, sizeof(ushort));
+            offset += sizeof(ushort);
+            Buffer.BlockCopy(BitConverter.GetBytes(rootOffset), 0, buffer, offset, sizeof(uint));
+            offset += sizeof(uint);
+            Buffer.BlockCopy(BitConverter.GetBytes(dataOffset), 0, buffer, offset, sizeof(uint));
+            return buffer;
         }
 
         public override void fromByteArray(byte[] buffer)
@@ -136,7 +138,6 @@ namespace MeowOS.FileSystem
             RootOffset = BitConverter.ToUInt32(buffer, offset);
             offset += sizeof(uint);
             DataOffset = BitConverter.ToUInt32(buffer, offset);
-            offset += sizeof(uint);
         }
 
         public override void fromByteStream(Stream input)

@@ -48,10 +48,20 @@ namespace MeowOS.FileSystem
             get => currDirOffset;
             set => currDirOffset = value;
         }
+        private FileHeader bufferFH;
+        public FileHeader BufferFH => bufferFH;
+        private byte[] bufferData;
+        public byte[] BufferData => bufferData;
+        private string bufferRestorePath;
+        public string BufferRestorePath => bufferRestorePath;
 
         public FileSystemController()
         {
             CurrDir = "";
+
+            bufferFH = null;
+            bufferData = null;
+            bufferRestorePath = null;
         }
 
         public void createSpace(string path, string adminLogin, string adminDigest)
@@ -571,6 +581,42 @@ namespace MeowOS.FileSystem
             while (rootDir[size] != '\0')
                 size += FileHeader.SIZE;
             return size;
+        }
+
+        public void writeToBuffer(FileHeader fh, byte[] data, string restorePath)
+        {
+            bufferFH = fh == null ? null : fh.Clone() as FileHeader;
+            bufferData = data;
+            bufferRestorePath = restorePath;
+        }
+
+        public void writeFromBuffer(string path)
+        {
+            if (bufferFH.IsDirectory)
+            {
+                writeFile(path, bufferFH, null, true);
+                byte[] data = bufferData.ToArray();
+                for (int offset = 0; offset < data.Length; offset += FileHeader.SIZE)
+                {
+                    string newPath = path + "/" + bufferFH.NameWithoutZeros;
+                    FileHeader oldBufferFH = bufferFH;
+                    byte[] oldBufferData = bufferData;
+                    bufferFH = new FileHeader(data.Skip(offset).ToArray());
+                    bufferData = readFile(bufferFH, true);
+                    writeFromBuffer(newPath);
+                    bufferFH = oldBufferFH;
+                    bufferData = oldBufferData;
+                }
+            }
+            else
+                writeFile(path, bufferFH, bufferData, true);
+        }
+
+        public void clearBuffer()
+        {
+            bufferFH = null;
+            bufferData = null;
+            bufferRestorePath = null;
         }
 
         ~FileSystemController()
