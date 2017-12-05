@@ -8,33 +8,33 @@
         Title="MeowOS" Height="500" Width="750">
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <Menu Height="25" VerticalAlignment="Top" HorizontalAlignment="Stretch">
-            <MenuItem Header="Система">
-                <MenuItem Header="Менеджер пользователей" Click="MenuItem_UsersManager_Click"/>
+            <MenuItem Header="_Система">
+                <MenuItem Header="_Менеджер пользователей" Click="MenuItem_UsersManager_Click"/>
                 <Separator/>
-                <MenuItem Header="Сведения о файловой системе" Click="MenuItem_fsProperties_Click"/>
+                <MenuItem Header="_Сведения о файловой системе" Click="MenuItem_fsProperties_Click"/>
                 <Separator/>
-                <MenuItem Header="Планировщик процессов" Click="MenuItem_schedulerClick"/>
+                <MenuItem Header="_Планировщик процессов" Click="MenuItem_schedulerClick"/>
                 <Separator/>
-                <MenuItem Header="Выйти из системы" Click="logout"/>
+                <MenuItem Header="_Выйти из системы" Click="logout"/>
             </MenuItem>
-            <MenuItem Header="Файл" SubmenuOpened="MenuItem_File_Expand">
-                <MenuItem Name="crFileItem" Header="Создать файл..." Click="MenuItem_Create_Click"/>
-                <MenuItem Name="crDirItem" Header="Создать каталог..." Click="MenuItem_Create_Click"/>
+            <MenuItem Header="_Файл" SubmenuOpened="MenuItem_File_Expand">
+                <MenuItem Name="crFileItem" Header="Создать _файл..." Click="MenuItem_Create_Click"/>
+                <MenuItem Name="crDirItem" Header="Создать _каталог..." Click="MenuItem_Create_Click"/>
                 <Separator/>
-                <MenuItem Name="openItem" Header="Открыть" Click="MenuItem_Open_Click"/>
-                <MenuItem Name="deleteItem" Header="Удалить" Click="MenuItem_Delete_Click"/>
+                <MenuItem Name="openItem" Header="_Открыть" Click="MenuItem_Open_Click"/>
+                <MenuItem Name="deleteItem" Header="_Удалить" Click="MenuItem_Delete_Click"/>
                 <Separator/>
-                <MenuItem Name="copyItem" Header="Копировать" Click="MenuItem_Copy_Click"/>
-                <MenuItem Name="cutItem" Header="Вырезать" Click="MenuItem_Cut_Click"/>
-                <MenuItem Name="pasteItem" Header="Вставить" Click="MenuItem_Paste_Click"/>
+                <MenuItem Name="copyItem" Header="Ко_пировать" Click="MenuItem_Copy_Click"/>
+                <MenuItem Name="cutItem" Header="_Вырезать" Click="MenuItem_Cut_Click"/>
+                <MenuItem Name="pasteItem" Header="Вс_тавить" Click="MenuItem_Paste_Click"/>
                 <Separator/>
-                <MenuItem Name="propertiesItem" Header="Свойства" Click="MenuItem_Properties_Click"/>
+                <MenuItem Name="propertiesItem" Header="_Свойства" Click="MenuItem_Properties_Click"/>
                 <Separator/>
-                <MenuItem Name="uploadItem" Header="Загрузить из ОС..." Click="MenuItem_Upload_Click"/>
-                <MenuItem Name="downloadItem" Header="Выгрузить в ОС..." Click="MenuItem_Download_Click"/>
+                <MenuItem Name="uploadItem" Header="_Загрузить из ОС..." Click="MenuItem_Upload_Click"/>
+                <MenuItem Name="downloadItem" Header="Вы_грузить в ОС..." Click="MenuItem_Download_Click"/>
             </MenuItem>
-            <MenuItem Header="Проводник">
-                <CheckBox Name="showHiddenChb" Content="Показывать скрытые файлы" IsChecked="False" Checked="showHiddenChb_Changed" Unchecked="showHiddenChb_Changed"/>
+            <MenuItem Header="_Проводник">
+                <MenuItem Name="showHiddenItem" Header="Показывать _скрытые файлы" IsChecked="False" Checked="showHiddenChb_Changed" Unchecked="showHiddenChb_Changed" IsCheckable="True"/>
             </MenuItem>
         </Menu>
         <local:AutoGreyableImage x:Name="backImg" HorizontalAlignment="Left" Height="40" Margin="0,25,0,0" VerticalAlignment="Top" Width="40" MouseLeftButtonUp="onBackLMBUp" Source="Resources/back.png" Cursor="Hand"/>

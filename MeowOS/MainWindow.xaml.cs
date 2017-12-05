@@ -36,7 +36,7 @@ namespace MeowOS
             }
             Title = "MeowOS - " + Session.userInfo.Login;
             
-            showHiddenChb.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
+            showHiddenItem.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
         }
 
         //private enum PathTypes { PT_ABSOLUTE, PT_RELATIVE };
@@ -120,7 +120,7 @@ namespace MeowOS
             FileView fv = null;
             if (fh.Name.First() != UsefulThings.DELETED_MARK)
             {
-                if (!fh.IsHidden || fh.IsHidden && showHiddenChb.IsChecked.Value)
+                if (!fh.IsHidden || fh.IsHidden && showHiddenItem.IsChecked == true)
                 {
                     fv = new FileView(fh);
                     fv.PreviewMouseDown += onFileViewMouseDown;
