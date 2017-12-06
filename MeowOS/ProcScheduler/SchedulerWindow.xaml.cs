@@ -155,7 +155,7 @@ namespace MeowOS.ProcScheduler
                     putToQueue = " и помещён в конец соответствующей очереди";
                 }
                 pv.refresh();
-                log("Процес " + pv.Proc.PID + " (" + old + ") сменил приоритет на " + pv.Proc.Priority + putToQueue);
+                log("Процесс " + pv.Proc.PID + " (" + old + ") сменил приоритет на " + pv.Proc.Priority + putToQueue);
             }
         }
 
@@ -168,7 +168,7 @@ namespace MeowOS.ProcScheduler
             pv.refresh();
             scheduler.FreeMem += pv.Proc.MemRequired;
             refreshFreeMemLabel();
-            log("Процес " + pv.Proc + " убит (" + pv.Proc.MemRequired + " байт памяти освобождено)");
+            log("Процесс " + pv.Proc + " убит (" + pv.Proc.MemRequired + " байт памяти освобождено)");
         }
 
         private void log(string str)

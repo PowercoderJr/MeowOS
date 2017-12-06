@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace MeowOS.ProcScheduler
 {
@@ -111,15 +112,60 @@ namespace MeowOS.ProcScheduler
                     {
                         case Process.States.BORN:
                         case Process.States.WAITING:
-                            if (currProc.MemRequired > freeMem)
+                            bool memFound = currProc.MemRequired <= freeMem;
+
+                            if (!memFound && currProc.Priority == Process.Priorities.ABSOLUTE)
+                            {
+                                List<Process> poorProcs = new List<Process>();
+                                int potentialMem = freeMem;
+                                bool memAdded;
+                                do
+                                {
+                                    memAdded = false;
+                                    for (int i = (int)Process.Priorities.LOW; !memAdded && i < (int)Process.Priorities.ABSOLUTE; ++i)
+                                    {
+                                        RRProcQueue rrpq = rrq.Find(q => q.Priority == (Process.Priorities)i);
+                                        Process poorProc = rrpq.FindLast(p => p.State == Process.States.READY && !poorProcs.Contains(p));
+                                        if (poorProc != null)
+                                        {
+                                            poorProcs.Add(poorProc);
+                                            potentialMem += poorProc.MemRequired;
+                                            memAdded = true;
+                                        }
+                                    }
+                                } while (memAdded && currProc.MemRequired > potentialMem);
+
+                                if (currProc.MemRequired <= potentialMem)
+                                {
+                                    //TODO revision
+                                    foreach (Process poorProc in poorProcs)
+                                    {
+                                        poorProc.State = Process.States.WAITING;
+                                        freeMem += poorProc.MemRequired;
+                                        log("Процесс " + currProc + " вытеснил процесс " + poorProc + " (" +
+                                            poorProc.MemRequired + " байт памяти захвачено, теперь свободно " + freeMem + " байт)");
+                                        //TODO повышать приоритет
+                                    }
+                                    memFound = true;
+                                }
+                            }
+
+                            if (memFound)
+                            {
+                                currProc.State = Process.States.RUNNING;
+                                freeMem -= currProc.MemRequired;
+                                log("Процесс " + currProc + " начал выполнение (" + currProc.MemRequired +
+                                    " байт памяти выделено, теперь свободно " + freeMem + " байт)");
+                            }
+                            else
                             {
                                 currProc.State = Process.States.WAITING;
                                 string priorityIncreased = "";
                                 Process.Priorities oldPriority = currProc.Priority;
-                                if (currProc.Priority < Process.Priorities.HIGH)
+                                if (currProc.Priority < Process.Priorities.ABSOLUTE - 1)
                                 {
-                                    priorityIncreased = " повысил свой приоритет и";
                                     ++currProc.Priority;
+                                    priorityIncreased = " повысил свой приоритет до " + currProc.Priority + " и";
                                     enqProcByPriority(rrq.Peek().Dequeue());
 
                                 }
@@ -131,12 +177,6 @@ namespace MeowOS.ProcScheduler
                                     " байт памяти, доступно всего " + freeMem);
                                 --rrq.BeforeSpin;
                             }
-                            else
-                            {
-                                currProc.State = Process.States.RUNNING;
-                                log("Процесс " + currProc + " начал выполнение (" + currProc.MemRequired + " байт памяти выделено)");
-                                freeMem -= currProc.MemRequired;
-                            }
                             break;
                         case Process.States.READY:
                         case Process.States.RUNNING:
@@ -146,10 +186,11 @@ namespace MeowOS.ProcScheduler
                             if (currProc.Burst == 0)
                             {
                                 currProc.State = Process.States.COMPLETED;
-                                log("Процесс " + currProc + " звершил выполнение (" + currProc.MemRequired + " байт памяти освобождено)");
                                 rrq.Peek().Dequeue();
                                 rrq.Peek().BeforeSpin = 0;
                                 freeMem += currProc.MemRequired;
+                                log("Процесс " + currProc + " звершил выполнение (" + currProc.MemRequired +
+                                    " байт памяти освобождено, теперь свободно " + freeMem + " байт)");
                             }
                             else
                                 --rrq.Peek().BeforeSpin;
@@ -194,14 +235,14 @@ namespace MeowOS.ProcScheduler
 
         public void enqProcByPriority(Process proc)
         {
-            rrq.Find(item => item.Priority == proc.Priority).Enqueue(proc);
+            rrq.Find(q => q.Priority == proc.Priority).Enqueue(proc);
         }
 
         public bool deqProc(Process proc)
         {
             bool removed = false;
             for (int i = 0; i < rrq.Count && !removed; ++i)
-                removed = rrq.Peek().Remove(proc);
+                removed = rrq[i].Remove(proc);
             return removed;
         }
     }
