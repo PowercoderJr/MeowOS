@@ -15,6 +15,13 @@
             set => priority = value;
         }
 
+        private Priorities effPriority;
+        public Priorities EffPriority
+        {
+            get => effPriority;
+            set => effPriority = value;
+        }
+
         private States state;
         public States State
         {
@@ -48,7 +55,7 @@
         public Process(int pid, Priorities priority, int burst, int memRequired, int bornTime) : this()
         {
             this.pid = pid;
-            this.priority = priority;
+            this.priority = this.effPriority = priority;
             this.burst = burst;
             this.memRequired = memRequired;
             this.bornTime = bornTime;

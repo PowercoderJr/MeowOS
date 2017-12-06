@@ -138,12 +138,12 @@ namespace MeowOS.ProcScheduler
         {
             MenuItem item = sender as MenuItem;
             ProcessView pv = ((item.Parent as MenuItem).Parent as ContextMenu).PlacementTarget as ProcessView;
-            Process.Priorities old = pv.Proc.Priority;
-            pv.Proc.Priority = (Process.Priorities)item.Tag;
-            if (pv.Proc.Priority != old)
+            Process.Priorities oldPriority = pv.Proc.Priority, newPriority = (Process.Priorities)item.Tag;
+            if (newPriority != oldPriority || newPriority != pv.Proc.EffPriority)
             {
+                pv.Proc.Priority = pv.Proc.EffPriority = newPriority;
                 string putToQueue = "";
-                if (pv.Proc.IsAlive)
+                if (pv.Proc.IsAlive && !newPriority.Equals(oldPriority))
                 {
                     scheduler.deqProc(pv.Proc);
                     scheduler.enqProcByPriority(pv.Proc);
@@ -155,7 +155,7 @@ namespace MeowOS.ProcScheduler
                     putToQueue = " и помещён в конец соответствующей очереди";
                 }
                 pv.refresh();
-                log("Процесс " + pv.Proc.PID + " (" + old + ") сменил приоритет на " + pv.Proc.Priority + putToQueue);
+                log("Процесс " + pv.Proc.PID + " (" + oldPriority + ") сменил приоритет на " + pv.Proc.Priority + putToQueue);
             }
         }
 
@@ -182,7 +182,7 @@ namespace MeowOS.ProcScheduler
             clear();
         }
 
-        private void stepBtn_Click(object sender, RoutedEventArgs e)
+        private void doStep()
         {
             int pid = scheduler.doUnit();
             if (pid > 0)
@@ -216,11 +216,16 @@ namespace MeowOS.ProcScheduler
             refreshFreeMemLabel();
         }
 
+        private void stepBtn_Click(object sender, RoutedEventArgs e)
+        {
+            doStep();
+        }
+
         private void toQuantumBtn_Click(object sender, RoutedEventArgs e)
         {
             do
             {
-                stepBtn_Click(sender, e);
+                doStep();
             } while (!scheduler.QuantumEndedFlag);
         }
 
@@ -228,7 +233,7 @@ namespace MeowOS.ProcScheduler
         {
             int n = scheduler.UnitsAmount;
             for (int i = scheduler.CurrUnit; i <= n; ++i)
-                stepBtn_Click(sender, e);
+                doStep();
         }
 
         private Rectangle buildRectangle(int row, int column, Brush fillBrush)

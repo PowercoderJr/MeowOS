@@ -137,14 +137,30 @@ namespace MeowOS.ProcScheduler
 
                                 if (currProc.MemRequired <= potentialMem)
                                 {
-                                    //TODO revision
+                                    poorProcs.Sort((p1, p2) => p2.MemRequired - p1.MemRequired);
+                                    int i = 0;
+                                    while (i < poorProcs.Count)
+                                    {
+                                        if (currProc.MemRequired <= potentialMem - poorProcs[i].MemRequired)
+                                            poorProcs.RemoveAt(i);
+                                        else
+                                            ++i;
+                                    }
+
                                     foreach (Process poorProc in poorProcs)
                                     {
                                         poorProc.State = Process.States.WAITING;
                                         freeMem += poorProc.MemRequired;
                                         log("Процесс " + currProc + " вытеснил процесс " + poorProc + " (" +
-                                            poorProc.MemRequired + " байт памяти захвачено, теперь свободно " + freeMem + " байт)");
+                                            poorProc.MemRequired + " байт памяти освобождено, теперь свободно " + freeMem + " байт)");
                                         //TODO повышать приоритет
+                                        if (currProc.Priority < Process.Priorities.ABSOLUTE - 1)
+                                        {
+                                            Process.Priorities oldPriority = currProc.Priority;
+                                            ++currProc.Priority;
+                                            log("Процесс " + currProc.PID + " (" + oldPriority + ") повысил свой приоритет до " +
+                                                currProc.Priority + " и отправляется в конец соответствующей очереди");
+                                        }
                                     }
                                     memFound = true;
                                 }
@@ -200,6 +216,18 @@ namespace MeowOS.ProcScheduler
                             {
                                 if (currProc.State == Process.States.RUNNING)
                                     currProc.State = Process.States.READY;
+
+                                if (currProc.Priority != currProc.EffPriority)
+                                {
+                                    Process.Priorities oldPriority = currProc.Priority;
+                                    currProc.Priority = currProc.EffPriority;
+                                    enqProcByPriority(rrq.Peek().Dequeue());
+                                    string tolog = "Процесс " + currProc.PID + " (" + oldPriority + ") вернул приоритет " + currProc.Priority;
+                                    if (currProc.Burst > 0)
+                                        tolog += " и помещён в конец соответствующей очереди";
+                                    log(tolog + " (имел повышенный приоритет, т.к. в прошлую его очередь ему не досталось ресурсов)");
+                                }
+
                                 endCurrQuantum();
                             }
                             unitDone = true;
