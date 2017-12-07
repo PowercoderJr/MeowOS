@@ -1,12 +1,4 @@
-﻿using MeowOS.FileSystem;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-
-namespace MeowOS
+﻿namespace MeowOS
 {
     public class UserInfo
     {

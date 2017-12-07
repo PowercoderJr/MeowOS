@@ -1,20 +1,10 @@
 ﻿using MeowOS.FileSystem;
 using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace MeowOS
 {
@@ -31,6 +21,14 @@ namespace MeowOS
         private void authorize(string login, string password, bool createNew, ContentControl statusControl)
         {
             statusControl.Visibility = Visibility.Hidden;
+            FileSystemSettingsWindow fssw = null;
+            if (createNew)
+            {
+                fssw = new FileSystemSettingsWindow();
+                if (!fssw.ShowDialog().Value)
+                    return;
+            }
+
             FileDialog dialog = createNew ? (FileDialog)new SaveFileDialog() : (FileDialog)new OpenFileDialog();
             dialog.DefaultExt = "mfs";
             dialog.Filter = "Meow disk (*.mfs)|*.mfs";
@@ -49,12 +47,12 @@ namespace MeowOS
                     {
                         //Создать
                         //TODO 15.11: запрашивать параметры создаваемого диска?
-                        ushort clusterSize = FileSystemController.FACTOR * 4; //Блок = 4 КБ
+                        /*ushort clusterSize = FileSystemController.FACTOR * 4; //Блок = 4 КБ
                         ushort rootSize = (ushort)(clusterSize * 10); //Корневой каталог = 10 блоков
-                        uint diskSize = 1 * FileSystemController.FACTOR * FileSystemController.FACTOR; //Раздел = 50 МБ (или 1 МБ для тестов)
-                        fsctrl.SuperBlock = new SuperBlock(fsctrl, "MeowFS", clusterSize, rootSize, diskSize);
-                        fsctrl.Fat = new FAT(fsctrl, (int)(diskSize / clusterSize));
-                        fsctrl.RootDir = UsefulThings.ENCODING.GetBytes(new String('\0', rootSize));
+                        uint diskSize = 50 * FileSystemController.FACTOR * FileSystemController.FACTOR; //Раздел = 50 МБ (или 1 МБ для тестов)*/
+                        fsctrl.SuperBlock = new SuperBlock(fsctrl, "MeowFS", fssw.ClusterSizeBytes, fssw.RootSizeBytes, fssw.DiskSizeBytes);
+                        fsctrl.Fat = new FAT(fsctrl, (int)(fssw.DiskSizeBytes / fssw.ClusterSizeBytes));
+                        fsctrl.RootDir = UsefulThings.ENCODING.GetBytes(new String('\0', fssw.RootSizeBytes));
                         fsctrl.createSpace(dialog.FileName, login, digest);
                         userInfo = new UserInfo(1, login, 1, UserInfo.DEFAULT_GROUP, UserInfo.Roles.ADMIN);
                         success = true;

@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Media;
 using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Controls;
 
 namespace MeowOS
@@ -82,6 +80,8 @@ namespace MeowOS
             }
         }
 
+
+        private static readonly SoundPlayer meower = new SoundPlayer(Properties.Resources.meow);
         public static void controlLettersAndDigits(TextBox tb)
         {
             int ss = tb.SelectionStart - 1;
@@ -89,7 +89,10 @@ namespace MeowOS
             tb.Text = string.Concat(tb.Text.Where(char.IsLetterOrDigit));
 
             if (!tb.Text.Equals(text))
+            {
+                meower.Play();
                 tb.SelectionStart = Math.Max(0, ss);
+            }
         }
 
         public static string readLine(byte[] data)

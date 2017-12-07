@@ -13,19 +13,19 @@
                 <StackPanel>
                     <Button Name="addUserBtn"  HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="addUserBtn_Click">
                         <DockPanel>
-                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/plus.png" />
+                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="Resources/plus.png" />
                             <Label Content="Добавить пользователя"/>
                         </DockPanel>
                     </Button>
                     <Button Name="editUserBtn" IsEnabled="False" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="editUserBtn_Click">
                         <DockPanel>
-                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/edit.png" />
+                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="Resources/edit.png" />
                             <Label Content="Редактировать пользователя"/>
                         </DockPanel>
                     </Button>
                     <Button Name="deleteUserBtn" IsEnabled="False" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="deleteUserBtn_Click">
                         <DockPanel>
-                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/minus.png" />
+                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="Resources/minus.png" />
                             <Label Content="Удалить пользователя"/>
                         </DockPanel>
                     </Button>
@@ -35,19 +35,19 @@
                 <StackPanel>
                     <Button Name="addGroupBtn" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="addGroupBtn_Click">
                         <DockPanel>
-                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/plus.png" />
+                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="Resources/plus.png" />
                             <Label Content="Добавить группу"/>
                         </DockPanel>
                     </Button>
                     <Button Name="editGroupBtn" IsEnabled="False" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="editGroupBtn_Click">
                         <DockPanel>
-                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/edit.png" />
+                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="Resources/edit.png" />
                             <Label Content="Редактировать группу"/>
                         </DockPanel>
                     </Button>
                     <Button Name="deleteGroupBtn" IsEnabled="False" HorizontalAlignment="Stretch" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" HorizontalContentAlignment="Stretch" Focusable="False" Click="deleteGroupBtn_Click">
                         <DockPanel>
-                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="pack://siteoforigin:,,,/Resources/minus.png" />
+                            <Image DockPanel.Dock="Left" Width="32" Height="32" Source="Resources/minus.png" />
                             <Label Content="Удалить группу"/>
                         </DockPanel>
                     </Button>

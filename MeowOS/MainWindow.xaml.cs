@@ -1,22 +1,15 @@
 ﻿using MeowOS.FileSystem;
 using MeowOS.FileSystem.Exceptions;
+using MeowOS.ProcScheduler;
 using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+using System.Media;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace MeowOS
 {
@@ -26,8 +19,6 @@ namespace MeowOS
     public partial class MainWindow : Window
     {
         private FileSystemController fsctrl;
-        private byte[] bufferFH, bufferData;
-        private string bufferRestorePath;
         private FileView selection;
 
         public MainWindow(string path)
@@ -43,17 +34,13 @@ namespace MeowOS
             {
 
             }
-            
-            bufferFH = null;
-            bufferData = null;
-            bufferRestorePath = null;
             Title = "MeowOS - " + Session.userInfo.Login;
-            
-            showHiddenChb.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
+
+            showHiddenItem.IsEnabled = Session.userInfo.Role == UserInfo.Roles.ADMIN;
         }
 
         //private enum PathTypes { PT_ABSOLUTE, PT_RELATIVE };
-        private void openPath(string path/*, PathTypes pathType = PathTypes.PT_ABSOLUTE*/)
+        private void openPath(string path)
         {
             path = UsefulThings.clearExcessSeparators(path);
             try
@@ -90,7 +77,7 @@ namespace MeowOS
                     fh = fsctrl.getFileHeader(path, true);
                 }
 
-                if (fh == null)
+                if (!path.Equals("") && fh == null)
                     throw new InvalidPathException(path);
                 if (path.Equals("") || fh.IsDirectory)
                 {
@@ -131,9 +118,9 @@ namespace MeowOS
         private FileView addFileView(FileHeader fh)
         {
             FileView fv = null;
-            if (fh.Name.First() != UsefulThings.DELETED_MARK) //Проверять внутри метода или каждый раз перед вызовом?
+            if (fh.Name.First() != UsefulThings.DELETED_MARK)
             {
-                if (!fh.IsHidden || fh.IsHidden && showHiddenChb.IsChecked.Value)
+                if (!fh.IsHidden || fh.IsHidden && showHiddenItem.IsChecked == true)
                 {
                     fv = new FileView(fh);
                     fv.PreviewMouseDown += onFileViewMouseDown;
@@ -200,6 +187,11 @@ namespace MeowOS
             new FileSystemPropertiesWindow(fsctrl.SuperBlock).ShowDialog();
         }
 
+        private void MenuItem_schedulerClick(object sender, RoutedEventArgs e)
+        {
+            new SchedulerWindow().ShowDialog();
+        }
+
         private void logout(object sender, RoutedEventArgs e)
         {
             fsctrl.closeSpace();
@@ -209,12 +201,19 @@ namespace MeowOS
             aw.Show();
         }
 
+        private const string APPLAUSE_CMD = "аплодисменты этому эмулятору";
+        private static readonly SoundPlayer player = new SoundPlayer(Properties.Resources.applause);
         private void TextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                openPath(addressEdit.Text);
-                addressEdit.SelectionStart = addressEdit.Text.Length;
+                if (addressEdit.Text.ToLower().Equals(APPLAUSE_CMD))
+                    player.Play();
+                else
+                {
+                    openPath(addressEdit.Text);
+                    addressEdit.SelectionStart = addressEdit.Text.Length;
+                }
             }
         }
 
@@ -282,9 +281,17 @@ namespace MeowOS
 
         private void deleteCmd()
         {
-            fsctrl.deleteFile(fsctrl.CurrDir, selection.FileHeader, true);
-            wrapPanel.Children.Remove(selection);
-            selection = null;
+
+            try
+            {
+                fsctrl.deleteFile(fsctrl.CurrDir, selection.FileHeader, true);
+                wrapPanel.Children.Remove(selection);
+                selection = null;
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void MenuItem_Copy_Click(object sender, RoutedEventArgs e)
@@ -294,7 +301,7 @@ namespace MeowOS
 
         private void copyCmd()
         {
-            writeToBuffer(selection.FileHeader.toByteArray(false), fsctrl.readFile(selection.FileHeader, false), null);
+            fsctrl.writeToBuffer(selection.FileHeader, fsctrl.readFile(selection.FileHeader, false), null);
         }
 
         private void MenuItem_Cut_Click(object sender, RoutedEventArgs e)
@@ -304,19 +311,12 @@ namespace MeowOS
 
         private void cutCmd()
         {
-            writeToBuffer(selection.FileHeader.toByteArray(false), null, fsctrl.CurrDir);
-        }
-
-        private void writeToBuffer(byte[] fh, byte[] data, string restorePath)
-        {
-            bufferFH = fh;
-            bufferData = data;
-            bufferRestorePath = restorePath;
+            fsctrl.writeToBuffer(selection.FileHeader, null, fsctrl.CurrDir);
         }
 
         private void MenuItem_Paste_Click(object sender, RoutedEventArgs e)
         {
-            if (bufferFH != null)
+            if (fsctrl.BufferFH != null)
                 pasteCmd();
             else
                 MessageBox.Show("В буфере нет информации", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -325,13 +325,12 @@ namespace MeowOS
         private void pasteCmd()
         {
             bool success = false;
-            FileHeader fh = new FileHeader(bufferFH);
-            if (bufferRestorePath != null) //вставка вырезанного
+            if (fsctrl.BufferRestorePath != null) //вставка вырезанного
             {
                 try
                 {
-                    fsctrl.writeHeader(fsctrl.CurrDir, fh, true);
-                    fsctrl.deleteHeader(bufferRestorePath, fh, true);
+                    fsctrl.writeHeader(fsctrl.CurrDir, fsctrl.BufferFH, true);
+                    fsctrl.deleteHeader(fsctrl.BufferRestorePath, fsctrl.BufferFH, true);
                     success = true;
                 }
                 catch (Exception e)
@@ -340,8 +339,8 @@ namespace MeowOS
                     try
                     {
                         if (!(e is FileAlreadyExistException))
-                            fsctrl.deleteHeader(fsctrl.CurrDir, fh, false);
-                        fsctrl.writeHeader(bufferRestorePath, fh, false);
+                            fsctrl.deleteHeader(fsctrl.CurrDir, fsctrl.BufferFH, false);
+                        fsctrl.writeHeader(fsctrl.BufferRestorePath, fsctrl.BufferFH, false);
                     }
                     catch
                     {
@@ -353,7 +352,7 @@ namespace MeowOS
             {
                 try
                 {
-                    writeToDisk(fsctrl.CurrDir, fh, bufferData);
+                    fsctrl.writeFromBuffer(fsctrl.CurrDir);
                     success = true;
                 }
                 catch (Exception e)
@@ -363,7 +362,7 @@ namespace MeowOS
                     {
                         try
                         {
-                            fsctrl.deleteFile(fsctrl.CurrDir, fh, false);
+                            fsctrl.deleteFile(fsctrl.CurrDir, fsctrl.BufferFH, false);
                         }
                         catch
                         {
@@ -375,30 +374,12 @@ namespace MeowOS
 
             if (success)
             {
-                FileView fv = addFileView(fh);
+                FileView fv = addFileView(fsctrl.BufferFH);
                 if (fv != null)
                     onFileViewMouseDown(fv, null);
             }
 
-            bufferFH = null;    
-            bufferData = null;
-            bufferRestorePath = null;
-        }
-
-        private void writeToDisk(string path, FileHeader fh, byte[] data)
-        {
-            if (fh.IsDirectory)
-            {
-                fsctrl.writeFile(path, fh, /*data*/null, true);
-                //byte[] content = fsctrl.readFile(fh, false);
-                for (int offset = 0; offset < data.Length; offset += FileHeader.SIZE)
-                {
-                    FileHeader curr = new FileHeader(data.Skip(offset).ToArray());
-                    writeToDisk(path + "/" + fh.NameWithoutZeros, curr, fsctrl.readFile(curr, true));
-                }
-            }
-            else
-                fsctrl.writeFile(path, fh, data, true);
+            fsctrl.clearBuffer();
         }
 
         private void MenuItem_Properties_Click(object sender, RoutedEventArgs e)
@@ -412,7 +393,7 @@ namespace MeowOS
             FilePropertiesWindow fpw = new FilePropertiesWindow(selection.FileHeader);
             if (fpw.ShowDialog().Value)
             {
-                fsctrl.writeBytes(headerOffset, selection.FileHeader.toByteArray(false));
+                fsctrl.writeBytes(headerOffset, selection.FileHeader.toByteArray());
                 selection.refresh();
             }
         }
@@ -478,14 +459,8 @@ namespace MeowOS
         private void MenuItem_File_Expand(object sender, RoutedEventArgs e)
         {
             openItem.IsEnabled = deleteItem.IsEnabled = copyItem.IsEnabled = cutItem.IsEnabled = propertiesItem.IsEnabled = selection != null;
-            pasteItem.IsEnabled = bufferFH != null;
+            pasteItem.IsEnabled = fsctrl.BufferFH != null;
             downloadItem.IsEnabled = selection != null && !selection.FileHeader.IsDirectory;
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            foreach (Window window in OwnedWindows)
-                window.Close();
         }
     }
 }
